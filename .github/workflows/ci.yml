@@ -8,7 +8,7 @@ on:
 
 jobs:
   ci:
-    name: Typecheck, Lint, Test, Build
+    name: Typecheck, Lint, Test, Build, Smoke
     runs-on: ubuntu-latest
 
     strategy:
@@ -43,3 +43,10 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      # Смоук-тест гоняет собранный dist/bin/cli.cjs против реального файлового
+      # scaffolding. Защищает от регрессии трёх критических багов, утёкших в
+      # 1.0.1: сломанные импорты роутов, CJS вместо ESM, ESM-only зависимости CLI.
+      # Идёт после build потому что требует готовый dist/.
+      - name: Smoke test
+        run: npm run test:smoke

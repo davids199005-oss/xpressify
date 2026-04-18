@@ -1,3 +1,5 @@
+import pluralizeLib from 'pluralize';
+
 /**
  * Утилиты для преобразования имён.
  * Все функции — чистые (pure): одинаковый вход всегда даёт одинаковый выход,
@@ -54,20 +56,19 @@ export function toSnakeCase(input: string): string {
 }
 
 /**
- * Примитивная английская плюрализация.
- * Покрывает 95% случаев для типичных имён моделей и маршрутов.
- * Для полноценной плюрализации существует библиотека "pluralize",
- * но для нашего случая это было бы избыточно.
+ * Плюрализация английских слов.
+ *
+ * Раньше здесь была самописная регулярка, которая ломалась на двух важных
+ * случаях: уже-множественные слова (pluralize('users') → 'userses') и
+ * иррегулярные формы (child/children, person/people). Теперь используем
+ * npm-пакет pluralize — это де-факто стандарт в Node-экосистеме, обрабатывает
+ * иррегулярности из CLDR и идемпотентен: pluralize('users') === 'users'.
+ *
+ * Сохраняем имя функции и сигнатуру (string → string) для обратной
+ * совместимости публичного API — эта функция реэкспортируется из index.ts.
  */
 export function pluralize(word: string): string {
-  if (word.endsWith('s') || word.endsWith('x') || word.endsWith('z')) {
-    return `${word}es`;
-  }
-  if (word.endsWith('y') && !/[aeiou]y$/.test(word)) {
-    // category → categories, но monkey → monkeys
-    return `${word.slice(0, -1)}ies`;
-  }
-  return `${word}s`;
+  return pluralizeLib(word);
 }
 
 /**

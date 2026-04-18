@@ -57,14 +57,14 @@ export class TemplateNotFoundError extends XpressifyError {
 }
 
 /**
- * Команда запущена вне директории xpressify-проекта.
- * Актуально для Phase 3 (generate) — нельзя генерировать роуты
- * если нет package.json с нужной сигнатурой.
+ * Команда запущена вне директории Node.js-проекта.
+ * Бросается в project-detector.service когда нет package.json ни в текущей,
+ * ни в родительских директориях.
  */
 export class NotXpressifyProjectError extends XpressifyError {
   constructor() {
     super(
-      'Not an Xpressify project. Run "xpressify new <name>" to create one.',
+      'Not inside a Node.js project. Run "xpressify new <project-name>" to create one first.',
     );
   }
 }

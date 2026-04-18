@@ -109,12 +109,13 @@ export function resolveDependencies(
 
 /**
  * Команды установки для каждого package manager.
+ * npm использует "install" (канонично), pnpm и yarn используют "add".
  * Используем Record чтобы TypeScript гарантировал покрытие всех трёх вариантов.
  */
-const INSTALL_COMMANDS: Record<PackageManager, string> = {
-  npm: 'npm',
-  pnpm: 'pnpm',
-  yarn: 'yarn',
+const INSTALL_COMMANDS: Record<PackageManager, { bin: string; subcommand: string }> = {
+  npm:  { bin: 'npm',  subcommand: 'install' },
+  pnpm: { bin: 'pnpm', subcommand: 'add' },
+  yarn: { bin: 'yarn', subcommand: 'add' },
 };
 
 export const packageManagerService = {
@@ -133,13 +134,13 @@ export const packageManagerService = {
   ): Promise<void> => {
     if (deps.length === 0) return;
 
-    const pm = INSTALL_COMMANDS[packageManager];
+    const { bin, subcommand } = INSTALL_COMMANDS[packageManager];
 
     // npm и pnpm используют --save-dev, yarn использует --dev
     const devFlag = packageManager === 'yarn' ? '--dev' : '--save-dev';
     const flags = isDev ? [devFlag] : [];
 
-    await execa(pm, ['add', ...flags, ...deps], {
+    await execa(bin, [subcommand, ...flags, ...deps], {
       cwd: targetDir,
       // stdio: 'inherit' — вывод команды идёт напрямую в терминал пользователя.
       // Альтернатива 'pipe' — мы перехватываем вывод, но тогда пользователь

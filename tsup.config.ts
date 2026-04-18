@@ -1,9 +1,4 @@
 import { defineConfig } from "tsup";
-import path from "path";
-
-// Алиас @/ → src/ — должен быть задан явно для esbuild (tsup не читает
-// paths из tsconfig автоматически при бандлинге).
-const alias = { "@": path.resolve(__dirname, "src") };
 
 export default defineConfig([
   {
@@ -28,9 +23,6 @@ export default defineConfig([
     splitting: false,
     minify: false,
     shims: true,
-    esbuildOptions(options) {
-      options.alias = alias;
-    },
   },
   {
     entry: ["src/bin/cli.ts"],
@@ -44,15 +36,29 @@ export default defineConfig([
     outExtension() {
       return { js: ".cjs" };
     },
-    skipNodeModulesBundle: true,
+    // Бандлим ВСЁ из node_modules в CLI-бинарник — КРОМЕ figlet.
+    // Причина бандлинга: экосистема npm активно мигрирует на ESM-only
+    // (chalk, ora, gradient-string, @inquirer/prompts, execa и их транзитивные
+    // зависимости). Без бандлинга Node падает с "X.default is not a function"
+    // при попытке require() чистого ESM-модуля.
+    // Причина исключения figlet: figlet читает свои .flf шрифты с диска
+    // через __dirname во время выполнения. При бандлинге __dirname смещается
+    // в dist/bin/, и шрифты теряются. Оставляем figlet external — он CJS,
+    // работает через require без проблем, и находит свои шрифты в собственной
+    // папке node_modules.
+    //
+    // Regex с negative lookahead: /^(?!figlet$).+/ матчит любую непустую
+    // строку, которая НЕ равна точно "figlet". Комбинация noExternal + external
+    // для фигурного типа пакета (с файловыми ассетами) недостаточна — tsup
+    // резолвит noExternal первым и регекс /.+/ поглощает figlet.
+    // Размер self-contained бандла ~1.4 MB — приемлемо для CLI.
+    noExternal: [/^(?!figlet$).+/],
+    external: ["figlet"],
     splitting: false,
     minify: false,
     shims: true,
     banner: {
       js: "#!/usr/bin/env node",
-    },
-    esbuildOptions(options) {
-      options.alias = alias;
     },
   },
 ]);

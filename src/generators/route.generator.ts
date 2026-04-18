@@ -35,6 +35,6 @@ export async function generateRoute(options: GenerateOptions): Promise<void> {
   }
 
   logger.dim(`\n  Don't forget to register the router in your app.ts:`);
-  logger.dim(`  import ${names.camel}Router from './routes/${names.kebab}.router';`);
+  logger.dim(`  import ${names.camel}Router from './routes/${names.kebab}.router.js';`);
   logger.dim(`  app.use('/${names.pluralKebab}', ${names.camel}Router);`);
 }

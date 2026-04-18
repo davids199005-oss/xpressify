@@ -1,4 +1,5 @@
 import Handlebars from 'handlebars';
+import fs from 'fs';
 import path from 'path';
 import { filesystemService } from './filesystem.service';
 import { TemplateNotFoundError } from '../utils/errors';
@@ -13,17 +14,41 @@ import { TemplateNotFoundError } from '../utils/errors';
  * Мы храним шаблоны в директории templates/ относительно корня пакета.
  * При глобальной установке через npm этот путь будет вести в директорию
  * где установлен xpressify, а не в текущий рабочий каталог пользователя.
- * Именно поэтому мы используем import.meta.url для определения __dirname —
- * это ESM-safe способ получить путь к текущему модулю.
  *
- * Но подожди — мы собираем CLI в CJS через tsup, и там есть нативный __dirname.
- * Решение: tsup при сборке CJS автоматически заменяет import.meta.url
- * на __dirname-эквивалент. Поэтому код ниже работает корректно в обоих форматах.
+ * tsup собирает в несколько entry-points с разной глубиной вложенности:
+ *   dist/index.js и dist/index.cjs  → __dirname = dist/
+ *   dist/bin/cli.cjs                → __dirname = dist/bin/
+ * Поэтому "templates/" относительно __dirname может быть либо '../templates'
+ * либо '../../templates'. Функция resolveTemplatesDir() перебирает кандидатов
+ * и выбирает существующий — это надёжнее чем захардкоженный один путь,
+ * и автоматически подстраивается под изменения в tsup.config.ts.
  */
 
-// Путь к директории templates/ — два уровня вверх от dist/bin/ где живёт cli.cjs
-// src/services/ → src/ → корень проекта → templates/
-const TEMPLATES_DIR = path.resolve(__dirname, '../../templates');
+function resolveTemplatesDir(): string {
+  const candidates = [
+    path.resolve(__dirname, '../../templates'),
+    path.resolve(__dirname, '../templates'),
+    // Fallback на случай если tsup поменяет структуру — идём ещё выше.
+    path.resolve(__dirname, '../../../templates'),
+  ];
+
+  for (const dir of candidates) {
+    if (fs.existsSync(dir)) {
+      return dir;
+    }
+  }
+
+  // Это внутренняя ошибка — пользователь никогда не должен её увидеть
+  // если пакет корректно установлен. Если видим — значит templates/
+  // не попали в npm-публикацию (проверить поле "files" в package.json).
+  throw new Error(
+    `Could not locate the xpressify "templates/" directory. ` +
+      `Searched: ${candidates.join(', ')}. ` +
+      `This usually means the package was built or published incorrectly.`,
+  );
+}
+
+const TEMPLATES_DIR = resolveTemplatesDir();
 
 export const templateService = {
   /**

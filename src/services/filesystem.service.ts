@@ -33,4 +33,10 @@ export const filesystemService = {
   copyFile: async (src: string, dest: string): Promise<void> => {
     await fse.copy(src, dest);
   },
+
+  // Рекурсивно удаляет директорию — используется для отката при сбое
+  // генерации проекта. fse.remove безопасен: не падает если путь не существует.
+  removeDir: async (targetPath: string): Promise<void> => {
+    await fse.remove(targetPath);
+  },
 };

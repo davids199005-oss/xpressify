@@ -81,6 +81,31 @@ describe('pluralize', () => {
   it('should keep y → ys when preceded by vowel', () => {
     expect(pluralize('monkey')).toBe('monkeys');
   });
+
+  // Новые тесты после миграции на npm-пакет pluralize.
+  // Старая самописная версия ломалась на всех этих случаях.
+
+  it('should be idempotent for already-plural words', () => {
+    // Это главный баг который закрыла миграция: раньше pluralize('users')
+    // возвращало 'userses', из-за чего `g route users` генерировал маршрут
+    // '/userses' вместо '/users'.
+    expect(pluralize('users')).toBe('users');
+    expect(pluralize('products')).toBe('products');
+    expect(pluralize('categories')).toBe('categories');
+  });
+
+  it('should handle irregular plurals', () => {
+    // CLDR-правила английского, которых не было в самописной версии
+    expect(pluralize('child')).toBe('children');
+    expect(pluralize('person')).toBe('people');
+    expect(pluralize('mouse')).toBe('mice');
+  });
+
+  it('should handle unchanged plurals', () => {
+    // Слова у которых единственное и множественное совпадают
+    expect(pluralize('fish')).toBe('fish');
+    expect(pluralize('sheep')).toBe('sheep');
+  });
 });
 
 describe('resolveNames', () => {

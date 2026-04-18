@@ -3,6 +3,10 @@
  *
  * Сейчас методы возвращают заглушки — замени их реальной логикой
  * работы с базой данных или другим источником данных.
+ *
+ * Неиспользуемые параметры префиксированы подчёркиванием (_id, _data) —
+ * это конвенция TypeScript/ESLint для явного обозначения намеренного
+ * неиспользования. Замени их на реальные имена когда начнёшь реализацию.
  */
 export class {{pascal}}Service {
   async findAll(): Promise<unknown[]> {
@@ -10,9 +14,8 @@ export class {{pascal}}Service {
     return [];
   }
 
-  async findOne(id: string): Promise<unknown | null> {
+  async findOne(_id: string): Promise<unknown | null> {
     // TODO: implement
-    console.log(id);
     return null;
   }
 
@@ -21,14 +24,12 @@ export class {{pascal}}Service {
     return data;
   }
 
-  async update(id: string, data: unknown): Promise<unknown | null> {
+  async update(_id: string, data: unknown): Promise<unknown | null> {
     // TODO: implement
-    console.log(id);
     return data;
   }
 
-  async remove(id: string): Promise<void> {
+  async remove(_id: string): Promise<void> {
     // TODO: implement
-    console.log(id);
   }
 }

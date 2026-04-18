@@ -5,6 +5,10 @@ import type {
   Feature,
   LoggerLibrary,
 } from '../schemas/project-options.schema';
+import {
+  PROJECT_NAME_REGEX,
+  PROJECT_NAME_ERROR,
+} from '../schemas/project-options.schema';
 
 export interface ProjectPromptAnswers {
   name: string;
@@ -22,8 +26,8 @@ export async function askProjectQuestions(
     ...(suggestedName ? { default: toKebabCase(suggestedName) } : {}),
     validate: (value: string) => {
       if (!value.trim()) return 'Project name cannot be empty';
-      if (!/^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/.test(value)) {
-        return 'Use only lowercase letters, numbers, and hyphens';
+      if (!PROJECT_NAME_REGEX.test(value)) {
+        return PROJECT_NAME_ERROR;
       }
       return true;
     },

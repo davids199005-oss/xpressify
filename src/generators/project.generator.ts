@@ -22,176 +22,127 @@ const CORE_DEV_DEPS = [
   'nodemon',
 ];
 
+// Базовые файлы проекта, создаваемые из шаблонов templates/base/.
+// Вынесено в константу чтобы список был явным и легко расширялся —
+// если нужно добавить ещё один базовый файл (например, README.md),
+// достаточно добавить строку сюда и создать .hbs-шаблон.
+const BASE_FILES: ReadonlyArray<{ template: string; output: string }> = [
+  { template: 'base/package.json.hbs',  output: 'package.json' },
+  { template: 'base/tsconfig.json.hbs', output: 'tsconfig.json' },
+  { template: 'base/env.example.hbs',   output: '.env.example' },
+  { template: 'base/gitignore.hbs',     output: '.gitignore' },
+  { template: 'base/server.ts.hbs',     output: 'src/server.ts' },
+  { template: 'base/app.ts.hbs',        output: 'src/app.ts' },
+];
+
+const SRC_DIRS = [
+  'src/routes',
+  'src/controllers',
+  'src/services',
+  'src/middlewares',
+  'src/utils',
+];
+
 export async function generateProject(options: NewProjectOptions): Promise<void> {
   const { name, targetDir, packageManager, features, loggerLibrary, installDependencies } = options;
 
   // ─── Шаг 1: Создание директории проекта ───────────────────────────────────
+  // Создаём директорию ДО try/catch блока — если её создание падает
+  // (например, уже существует), откатывать нечего.
   const dirSpinner = logger.spinner(`Creating project directory ${name}...`);
   await filesystemService.createProjectDir(targetDir);
   dirSpinner.succeed(`Created directory: ${name}`);
 
-  // ─── Шаг 2: Генерация базовых файлов и структуры директорий ───────────────
-  const filesSpinner = logger.spinner('Scaffolding base project files...');
-  await scaffoldBaseFiles(targetDir, options);
-  filesSpinner.succeed('Base files created');
+  // Начиная с этой точки любой сбой требует отката: частично созданный
+  // проект хуже, чем отсутствие проекта — пользователь не знает что с ним делать.
+  try {
+    // ─── Шаг 2: Генерация базовых файлов и структуры директорий ─────────────
+    const filesSpinner = logger.spinner('Scaffolding base project files...');
+    await scaffoldBaseFiles(targetDir, options);
+    filesSpinner.succeed('Base files created');
 
-  // ─── Шаг 3: Генерация файлов для выбранных фич ────────────────────────────
-  if (features.includes('logger') && loggerLibrary) {
-    const loggerSpinner = logger.spinner(`Adding ${loggerLibrary} logger config...`);
-    const templatePath = `logger/${loggerLibrary}.config.ts.hbs`;
-    const outputPath = path.join(targetDir, 'src', 'config', 'logger.config.ts');
-    await templateService.renderToFile(templatePath, outputPath, {});
-    loggerSpinner.succeed(`Logger config created (${loggerLibrary})`);
+    // ─── Шаг 3: Генерация файлов для выбранных фич ──────────────────────────
+    if (features.includes('logger') && loggerLibrary) {
+      const loggerSpinner = logger.spinner(`Adding ${loggerLibrary} logger config...`);
+      const templatePath = `logger/${loggerLibrary}.config.ts.hbs`;
+      const outputPath = path.join(targetDir, 'src', 'config', 'logger.config.ts');
+      await templateService.renderToFile(templatePath, outputPath, {});
+      loggerSpinner.succeed(`Logger config created (${loggerLibrary})`);
+    }
+
+    // ─── Шаг 4: Установка зависимостей ──────────────────────────────────────
+    if (installDependencies) {
+      const { deps: featureDeps, devDeps: featureDevDeps } = resolveDependencies(
+        features,
+        loggerLibrary,
+      );
+
+      const allDeps = [...CORE_DEPS, ...featureDeps];
+      const allDevDeps = [...CORE_DEV_DEPS, ...featureDevDeps];
+
+      logger.info('\nInstalling dependencies:');
+      await packageManagerService.install(packageManager, targetDir, allDeps, false);
+
+      logger.info('\nInstalling dev dependencies:');
+      await packageManagerService.install(packageManager, targetDir, allDevDeps, true);
+
+      logger.success('Dependencies installed');
+    }
+
+    // ─── Финальное сообщение ────────────────────────────────────────────────
+    printSuccessMessage(name, packageManager);
+  } catch (err) {
+    // Откат: удаляем частично созданную директорию.
+    // Используем обычный console.warn вместо logger.warn чтобы избежать
+    // потенциального падения логгера внутри уже упавшего контекста.
+    logger.warn('Error during project generation. Cleaning up...');
+    try {
+      await filesystemService.removeDir(targetDir);
+      logger.dim(`  Removed partial directory: ${targetDir}`);
+    } catch (cleanupErr) {
+      // Если даже откат упал — честно говорим об этом.
+      // Пользователь должен знать что на диске осталось нечто некорректное.
+      logger.error(
+        `Failed to clean up partial project at ${targetDir}. ` +
+          `Please remove it manually. Cleanup error: ${
+            cleanupErr instanceof Error ? cleanupErr.message : String(cleanupErr)
+          }`,
+      );
+    }
+    // Пробрасываем исходную ошибку — её обработает command handler,
+    // который покажет пользователю понятное сообщение и выставит exit code.
+    throw err;
   }
-
-  // ─── Шаг 4: Установка зависимостей ────────────────────────────────────────
-  if (installDependencies) {
-    const { deps: featureDeps, devDeps: featureDevDeps } = resolveDependencies(
-      features,
-      loggerLibrary,
-    );
-
-    const allDeps = [...CORE_DEPS, ...featureDeps];
-    const allDevDeps = [...CORE_DEV_DEPS, ...featureDevDeps];
-
-    const depsSpinner = logger.spinner('Installing dependencies...');
-    // Останавливаем спиннер перед install — execa с stdio:'inherit'
-    // пишет напрямую в терминал и будет конфликтовать со спиннером
-    depsSpinner.stop();
-
-    logger.info('\nInstalling dependencies:');
-    await packageManagerService.install(packageManager, targetDir, allDeps, false);
-
-    logger.info('\nInstalling dev dependencies:');
-    await packageManagerService.install(packageManager, targetDir, allDevDeps, true);
-
-    logger.success('Dependencies installed');
-  }
-
-  // ─── Финальное сообщение ──────────────────────────────────────────────────
-  printSuccessMessage(name, packageManager);
 }
 
 async function scaffoldBaseFiles(
   targetDir: string,
   options: NewProjectOptions,
 ): Promise<void> {
-  const { name } = options;
+  // Контекст для Handlebars — на данный момент нужно только имя проекта
+  // в package.json. Если в будущем шаблоны будут использовать больше
+  // данных (описание, автор), добавятся сюда.
+  const context = { name: options.name };
 
-  // package.json генерируем как объект и сериализуем — это безопаснее
-  // чем Handlebars-шаблон для JSON, TypeScript гарантирует структуру
-  const packageJson = {
-    name,
-    version: '0.1.0',
-    description: '',
-    main: 'dist/server.js',
-    scripts: {
-      dev: 'tsx watch src/server.ts',
-      build: 'tsc',
-      start: 'node dist/server.js',
-    },
-    dependencies: {},
-    devDependencies: {},
-  };
-
-  await filesystemService.writeFile(
-    path.join(targetDir, 'package.json'),
-    JSON.stringify(packageJson, null, 2),
-  );
-
-  const tsconfig = {
-    compilerOptions: {
-      target: 'ES2022',
-      module: 'commonjs',
-      lib: ['ES2022'],
-      outDir: './dist',
-      rootDir: './src',
-      strict: true,
-      esModuleInterop: true,
-      skipLibCheck: true,
-      forceConsistentCasingInFileNames: true,
-      resolveJsonModule: true,
-    },
-    include: ['src/**/*'],
-    exclude: ['node_modules', 'dist'],
-  };
-
-  await filesystemService.writeFile(
-    path.join(targetDir, 'tsconfig.json'),
-    JSON.stringify(tsconfig, null, 2),
-  );
-
-  const envExample = ['NODE_ENV=development', 'PORT=3000'].join('\n');
-  await filesystemService.writeFile(path.join(targetDir, '.env.example'), envExample);
-
-  const gitignore = ['node_modules', 'dist', '.env', '*.log'].join('\n');
-  await filesystemService.writeFile(path.join(targetDir, '.gitignore'), gitignore);
+  // Рендерим все базовые файлы из шаблонов.
+  // Раньше эти файлы были захардкожены как template literals прямо в коде —
+  // теперь они в templates/base/ и могут редактироваться без пересборки.
+  for (const { template, output } of BASE_FILES) {
+    const outputPath = path.join(targetDir, output);
+    await templateService.renderToFile(template, outputPath, context);
+  }
 
   // ─── Создаём базовую структуру директорий src/ ────────────────────────────
   // Git не отслеживает пустые директории — добавляем .gitkeep в каждую.
   // Это конвенция всего сообщества: пустой файл-маркер который говорит
   // "эта папка должна существовать в репозитории". Когда пользователь
   // добавит первый реальный файл, .gitkeep можно удалить.
-  const srcDirs = [
-    'src/routes',
-    'src/controllers',
-    'src/services',
-    'src/middlewares',
-    'src/utils',
-  ];
-
-  for (const dir of srcDirs) {
+  for (const dir of SRC_DIRS) {
     await filesystemService.writeFile(
       path.join(targetDir, dir, '.gitkeep'),
       '',
     );
   }
-
-  // src/server.ts — точка входа, подключает dotenv и запускает сервер
-  const serverTs = `import 'dotenv/config';
-import app from './app';
-
-const PORT = process.env.PORT ?? 3000;
-
-app.listen(PORT, () => {
-  console.log(\`Server running on port \${PORT}\`);
-});
-`;
-
-  await filesystemService.writeFile(
-    path.join(targetDir, 'src', 'server.ts'),
-    serverTs,
-  );
-
-  // src/app.ts — Express-приложение с базовыми middleware
-  const appTs = `import express from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
-import rateLimit from 'express-rate-limit';
-
-const app = express();
-
-app.use(helmet());
-app.use(cors());
-app.use(express.json());
-app.use(
-  rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100,
-  }),
-);
-
-app.get('/health', (_req, res) => {
-  res.json({ status: 'ok' });
-});
-
-export default app;
-`;
-
-  await filesystemService.writeFile(
-    path.join(targetDir, 'src', 'app.ts'),
-    appTs,
-  );
 }
 
 function printSuccessMessage(name: string, packageManager: string): void {

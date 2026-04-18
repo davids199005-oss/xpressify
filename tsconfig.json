@@ -29,11 +29,7 @@
     "skipLibCheck": true,
 
     "rootDir": "./src",
-    "outDir": "./dist",
-
-    "paths": {
-      "@/*": ["./src/*"]
-    }
+    "outDir": "./dist"
   },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules", "dist", "tests", "**/*.test.ts", "**/*.spec.ts"]

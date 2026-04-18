@@ -1,5 +1,6 @@
 import path from 'path';
 import { filesystemService } from './filesystem.service';
+import { NotXpressifyProjectError } from '../utils/errors';
 
 /**
  * Сервис для определения является ли текущая директория xpressify-проектом.
@@ -54,9 +55,7 @@ export const projectDetectorService = {
     const projectRoot = await projectDetectorService.findProjectRoot(startDir);
 
     if (!projectRoot) {
-      throw new Error(
-        'No package.json found. Run this command inside a Node.js project.',
-      );
+      throw new NotXpressifyProjectError();
     }
 
     return projectRoot;

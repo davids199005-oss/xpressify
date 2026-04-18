@@ -15,15 +15,23 @@ export const FeatureSchema = z.enum([
 // Отдельная схема для выбора логгера — появляется только если выбрана фича 'logger'
 export const LoggerLibrarySchema = z.enum(['pino', 'winston']);
 
+// Регулярка валидации имени проекта.
+// Экспортируется чтобы переиспользоваться в промпте без дублирования.
+// Правила:
+//   - только lowercase буквы, цифры и дефисы
+//   - не может начинаться или заканчиваться дефисом
+//   - одиночный символ тоже допустим (алтернатива через |)
+export const PROJECT_NAME_REGEX = /^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/;
+
+export const PROJECT_NAME_ERROR =
+  'Project name must contain only lowercase letters, numbers, and hyphens';
+
 export const NewProjectOptionsSchema = z.object({
   name: z
     .string()
     .min(1, 'Project name cannot be empty')
     .max(214, 'Project name is too long')
-    .regex(
-      /^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/,
-      'Project name must contain only lowercase letters, numbers, and hyphens',
-    ),
+    .regex(PROJECT_NAME_REGEX, PROJECT_NAME_ERROR),
   targetDir: z.string(),
   packageManager: PackageManagerSchema.default('npm'),
   features: z.array(FeatureSchema).default([]),

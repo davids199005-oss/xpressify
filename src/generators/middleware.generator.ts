@@ -23,6 +23,6 @@ export async function generateMiddleware(options: GenerateOptions): Promise<void
 
   logger.success(`Created middleware: src/middlewares/${names.kebab}.middleware.ts`);
   logger.dim(`\n  Register it in your app.ts or router:`);
-  logger.dim(`  import { ${names.camel}Middleware } from './middlewares/${names.kebab}.middleware';`);
+  logger.dim(`  import { ${names.camel}Middleware } from './middlewares/${names.kebab}.middleware.js';`);
   logger.dim(`  app.use(${names.camel}Middleware);`);
 }
