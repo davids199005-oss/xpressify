@@ -2,7 +2,7 @@
 
 <div align="center">
 
-<img src="./assets/banner.svg" alt="Xpressify banner" width="720"/>
+<img src="https://raw.githubusercontent.com/davids199005-oss/xpressify/main/assets/banner.svg" alt="Xpressify banner" width="720"/>
 
 ![Node](https://img.shields.io/badge/node-%3E%3D20-brightgreen?style=flat-square)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5%2B-3178c6?style=flat-square&logo=typescript&logoColor=white)
