@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  ci:
+    name: Typecheck, Lint, Test, Build
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        # Проверяем на обеих LTS-версиях Node — это называется matrix build.
+        # Если твой код работает на 20, но ломается на 22 из-за API-различий,
+        # CI поймает это автоматически.
+        node-version: [20, 22]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          # Кэшируем node_modules между запусками — ускоряет CI в ~3 раза
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm run test
+
+      - name: Build
+        run: npm run build
