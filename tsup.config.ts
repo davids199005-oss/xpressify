@@ -1,4 +1,9 @@
 import { defineConfig } from "tsup";
+import path from "path";
+
+// Алиас @/ → src/ — должен быть задан явно для esbuild (tsup не читает
+// paths из tsconfig автоматически при бандлинге).
+const alias = { "@": path.resolve(__dirname, "src") };
 
 export default defineConfig([
   {
@@ -23,6 +28,9 @@ export default defineConfig([
     splitting: false,
     minify: false,
     shims: true,
+    esbuildOptions(options) {
+      options.alias = alias;
+    },
   },
   {
     entry: ["src/bin/cli.ts"],
@@ -42,6 +50,9 @@ export default defineConfig([
     shims: true,
     banner: {
       js: "#!/usr/bin/env node",
+    },
+    esbuildOptions(options) {
+      options.alias = alias;
     },
   },
 ]);

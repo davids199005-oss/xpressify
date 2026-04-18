@@ -6,9 +6,9 @@
 
 ## 📍 Где мы сейчас
 
-**Текущая фаза:** Phase 4 — Polish & Publish (95% завершена)
-**Последняя сессия:** 18 апреля 2026 (Session 03)
-**Следующий шаг:** npm publish --access public
+**Текущая фаза:** Phase 4 — Polish & Publish (100% завершена)
+**Последняя сессия:** 18 апреля 2026 (Session 04)
+**Следующий шаг:** Опубликован на npm ✅
 
 ---
 
@@ -49,6 +49,7 @@ src/server.ts, src/app.ts.
 Фичи: eslint, prettier, husky, github-actions, zod, logger (pino/winston), jwt.
 Core deps всегда: express, dotenv, cors, helmet, express-rate-limit + dev types.
 
+---
 
 ## ✅ Phase 3 — Generate (`xpressify generate`) (ЗАВЕРШЕНА)
 
@@ -72,7 +73,7 @@ Binary aliases: xpressify, xpressify-cli, x — все указывают на d
 
 ---
 
-## ✅ Phase 4 — Polish & Publish (95% ЗАВЕРШЕНА)
+## ✅ Phase 4 — Polish & Publish (ЗАВЕРШЕНА)
 
 - [x] Динамическая версия из package.json через require() в CJS-контексте
 - [x] ASCII-арт баннер (figlet + gradient-string), подавляется при --help/-V
@@ -82,7 +83,14 @@ Binary aliases: xpressify, xpressify-cli, x — все указывают на d
 - [x] publint — All good!
 - [x] @arethetypeswrong/cli — No problems found, все 4 режима зелёные
       (node10, node16 CJS, node16 ESM, bundler)
-- [ ] **npm publish --access public** ← единственный оставшийся шаг
+- [x] **src/index.ts** — реальный публичный API: re-export типов, схем Zod,
+      утилит naming, классов ошибок. VERSION динамически из package.json.
+- [x] **tsup.config.ts** — esbuildOptions с alias @/ → src/ для обоих entry.
+      Критический баг: без этого @/-импорт в generate.command.ts не разрешался.
+- [x] **vitest.config.ts** — добавлен resolve.alias для корректной работы тестов.
+- [x] **tests/index.test.ts** — 14 реальных тестов: VERSION, Zod-схемы,
+      resolveNames, классы ошибок. Все 32 теста зелёные.
+- [x] **npm publish --access public** ✅
 
 ---
 
@@ -101,16 +109,25 @@ Binary aliases: xpressify, xpressify-cli, x — все указывают на d
 **Баннер подавляется** — проверка process.argv на --version/-V/--help/-h.
 **ASCII баннер в README** — code block вместо SVG (GitHub sanitizer блокирует
 linearGradient + url() refs в SVG).
+**@/ алиас** — задан явно через esbuildOptions в tsup.config.ts и resolve.alias
+в vitest.config.ts. tsup/vitest не читают paths из tsconfig при бандлинге.
+**Публичный API** — src/index.ts экспортирует типы, схемы, утилиты, ошибки.
+Позволяет использовать xpressify как библиотеку, а не только как CLI.
 
 ---
 
-## ❓ Открытые вопросы
+## ❓ Открытые вопросы / Идеи для v1.1
 
-**github-actions фича** — FEATURE_DEPS пустой массив. Решить: генерировать ли
-.github/workflows/ci.yml для сгенерированного проекта в следующей итерации?
+**github-actions фича** — FEATURE_DEPS пустой массив. Генерировать
+.github/workflows/ci.yml в сгенерированном проекте?
 
 **Windows symbolic links** — npm link требует прав админа или Developer Mode.
 Добавить в документацию для контрибьюторов.
+
+**x g route с --no-service флагом** — генерировать только router + controller
+без service файла для простых случаев?
+
+**Интерактивный режим для generate** — `x g` без аргументов показывает промпты?
 
 ---
 
@@ -124,6 +141,9 @@ linearGradient + url() refs в SVG).
 
 **SVG не отображается на GitHub** — GitHub sanitizer вырезает linearGradient
 с url() refs. Решение: использовать прямые fill="#hex" цвета в каждом элементе.
+
+**@/ алиас не резолвится** — проверь esbuildOptions в tsup.config.ts и
+resolve.alias в vitest.config.ts. Оба обязательны.
 
 ---
 
@@ -145,7 +165,11 @@ Phase 3 полностью реализована: project-detector с upward tr
 binary alias x, поддержка path-нотации в именах компонентов.
 Phase 4 почти завершена: динамическая версия, figlet баннер с gradient-string,
 README с ASCII code block баннером, publint и attw оба зелёные.
-Финальный шаг: npm publish --access public.
 
-### Session 04 — TBD
-Запустить npm publish. После публикации — обновить README с npm-бейджем версии.
+### Session 04 — 18 апреля 2026
+Финальная сессия перед публикацией. Исправлены три проблемы:
+1. Критический баг: @/ алиас не настроен в tsup/vitest — добавлен esbuildOptions
+   и resolve.alias. Без этого generate.command.ts сломался бы у пользователей.
+2. src/index.ts переписан с заглушки на реальный публичный API пакета.
+3. tests/index.test.ts переписан: 14 тестов покрывают VERSION, схемы, утилиты, ошибки.
+Итог: typecheck ✅ | 32 теста ✅ | build ✅ | publint ✅ | attw 4/4 🟢 | npm publish ✅
