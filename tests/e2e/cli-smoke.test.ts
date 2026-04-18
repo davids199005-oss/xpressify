@@ -4,6 +4,7 @@ import { tmpdir } from 'os';
 import { mkdtemp, rm, readFile } from 'fs/promises';
 import path from 'path';
 
+
 /**
  * End-to-end smoke tests для собранного CLI-бинарника.
  *
