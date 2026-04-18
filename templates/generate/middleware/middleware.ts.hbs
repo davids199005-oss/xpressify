@@ -1,0 +1,14 @@
+import type { Request, Response, NextFunction } from 'express';
+
+/**
+ * {{pascal}}Middleware — добавь описание назначения этого middleware.
+ */
+export const {{camel}}Middleware = (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): void => {
+  // TODO: implement
+  console.log(req.path);
+  next();
+};
