@@ -6,9 +6,9 @@
 
 ## 📍 Где мы сейчас
 
-**Текущая фаза:** Phase 3 — Generate (`xpressify generate`)
-**Последняя сессия:** 18 апреля 2026 (Session 02)
-**Следующий шаг:** GenerateOptionsSchema → project-detector.service → шаблоны → генераторы → generate.command.ts
+**Текущая фаза:** Phase 4 — Polish & Publish
+**Последняя сессия:** 18 апреля 2026 (Session 03)
+**Следующий шаг:** динамическая версия → README → publint → npm publish
 
 ---
 
@@ -17,132 +17,105 @@
 ```powershell
 cd D:\xpressify
 npm run build
-node dist/bin/cli.cjs --help
-node dist/bin/cli.cjs new --help
+x --help
+x g --help
 git log --oneline
 ```
 
-Ожидаемый результат: help-экран с командой `new [name]`, история коммитов.
+Ожидаемый результат: help с командами `new` и `generate|g`, все генераторы в списке.
 
 ---
 
 ## ✅ Phase 1 — Foundation (ЗАВЕРШЕНА)
 
-Полный фундамент: dual-package сборка (ESM + CJS), TypeScript 6.0 strict,
-Prettier, ESLint flat config с type-aware правилами, Vitest с coverage,
-GitHub Actions CI матрица Node 20/22. Все проверки зелёные.
+Dual-package сборка (ESM + CJS), TypeScript 6.0 strict, Prettier, ESLint flat config,
+Vitest с coverage, GitHub Actions CI матрица Node 20/22. Все проверки зелёные.
 
 
 ## ✅ Phase 2 — Scaffolding (`xpressify new`) (ЗАВЕРШЕНА)
 
-Полная реализация команды `xpressify new [name]` с интерактивными промптами,
-Zod-валидацией, сервисным слоем и генерацией базового Express-проекта.
+Полная реализация `xpressify new [name]` / `x new [name]`.
 
-**Утилиты** (`src/utils/`): `logger.ts` — обёртка над picocolors + ora,
-`naming.ts` — kebab/camel/pascal/snake + pluralize с тестами,
-`errors.ts` — иерархия кастомных ошибок (XpressifyError и наследники).
+**Утилиты:** `logger.ts`, `naming.ts` + тесты, `errors.ts`.
+**Схема:** `project-options.schema.ts` — NewProjectOptionsSchema через Zod.
+**Промпты:** два checkbox (Code Quality / Project Features), conditional select
+для логгера (pino/winston), husky auto-adds eslint + prettier.
+**Сервисы:** `filesystem.service.ts`, `template.service.ts` (Handlebars),
+`package-manager.service.ts` (exhaustive FEATURE_DEPS Record).
+**Шаблоны:** `templates/logger/pino.config.ts.hbs`, `winston.config.ts.hbs`.
+**Генератор:** 4 шага — директория → base files → logger config → install deps.
+Base files: package.json, tsconfig.json, .env.example, .gitignore, src/server.ts,
+src/app.ts. Структура src/: routes/, controllers/, services/, middlewares/, utils/
+(каждая с .gitkeep).
+**Команда:** `new.command.ts` с dependency injection и двухуровневым error handling.
 
-**Схемы** (`src/schemas/`): `project-options.schema.ts` — NewProjectOptionsSchema
-с полями name, targetDir, packageManager, features, loggerLibrary, installDependencies.
-
-**Промпты** (`src/prompts/`): `project.prompts.ts` — два checkbox (Code Quality
-и Project Features), conditional select для логгера (pino/winston),
-feature dependencies (husky auto-adds eslint + prettier).
-
-**Сервисы** (`src/services/`):
-- `filesystem.service.ts` — exists, createProjectDir, writeFile, readFile, copyFile
-- `template.service.ts` — Handlebars render + renderToFile, путь через __dirname
-- `package-manager.service.ts` — exhaustive FEATURE_DEPS Record, resolveDependencies,
-  install через execa с stdio:'inherit'
-
-**Шаблоны** (`templates/logger/`): `pino.config.ts.hbs` и `winston.config.ts.hbs`.
-
-**Генератор** (`src/generators/project.generator.ts`): 4 шага: создание директории →
-scaffold базовых файлов (package.json, tsconfig.json, .env.example, .gitignore,
-src/server.ts, src/app.ts) → генерация logger.config.ts → установка зависимостей.
-
-Core deps всегда: express, dotenv, cors, helmet, express-rate-limit.
-Core devDeps всегда: @types/express, @types/cors, @types/node, typescript, tsx, nodemon.
-
-**Команда** (`src/commands/new.command.ts`): dependency injection паттерн,
-двухуровневый error handling, process.exit(1) при ошибке.
-
-**Финальный список фич:** eslint, prettier, husky (auto-deps), github-actions,
-zod (deps only), logger (pino/winston → генерирует logger.config.ts),
-jwt (deps only: jsonwebtoken + bcryptjs + types).
-
-
-## 🎯 Phase 3 — Generate (`xpressify generate`) ← ТЕКУЩАЯ
-
-Команда `xpressify generate <type> <name>` (алиас `g`) генерирует компоненты
-внутри существующего xpressify-проекта.
-
-### План реализации (в порядке зависимостей)
-
-- [ ] **`src/schemas/generate-options.schema.ts`** — GenerateOptionsSchema:
-  тип компонента (route, middleware), имя, targetDir
-- [ ] **`src/services/project-detector.service.ts`** — проверяет что CWD
-  является xpressify-проектом (наличие package.json)
-- [ ] **Шаблоны** (`templates/generate/`):
-  - [ ] `route/router.ts.hbs` — Express router с CRUD-заглушками
-  - [ ] `route/controller.ts.hbs` — контроллер с типизированными handlers
-  - [ ] `route/service.ts.hbs` — сервисный слой
-  - [ ] `middleware/middleware.ts.hbs` — типизированный Express middleware
-- [ ] **Генераторы** (`src/generators/`):
-  - [ ] `route.generator.ts` — генерирует router + controller + service
-  - [ ] `middleware.generator.ts` — генерирует middleware
-- [ ] **`src/commands/generate.command.ts`** — subcommands: `route`, `middleware`
-- [ ] **Подключить в `src/bin/cli.ts`**
-- [ ] **Тесты** для каждого генератора
+Фичи: eslint, prettier, husky, github-actions, zod, logger (pino/winston), jwt.
+Core deps всегда: express, dotenv, cors, helmet, express-rate-limit + dev types.
 
 ---
 
-## 🎁 Phase 4 — Polish & Publish
+## ✅ Phase 3 — Generate (`xpressify generate`) (ЗАВЕРШЕНА)
 
-- [ ] Расширенный README с примерами использования
-- [ ] CHANGELOG.md
-- [ ] Проверка через `publint` и `@arethetypeswrong/cli`
-- [ ] Динамическая версия из package.json
-- [ ] `npm publish --access public`
+Полная реализация `xpressify generate <type> <name>` / `x g <type> <name>`.
+
+**Схема:** `generate-options.schema.ts` — GenerateOptionsSchema, поддержка
+путей в имени (`src/models/User`).
+**Сервис:** `project-detector.service.ts` — upward traversal для поиска package.json.
+**Генераторы:**
+- `route.generator.ts` — три файла в layered structure:
+  src/routes/, src/controllers/, src/services/
+- `middleware.generator.ts` — один файл в src/middlewares/
+- `ts-construct.generator.ts` — единый генератор для class/interface/enum,
+  поддержка произвольного пути (`x g class src/models/User`)
+
+**Шаблоны:** `templates/generate/route/` (router, controller, service),
+`templates/generate/middleware/`, `templates/generate/class/`,
+`templates/generate/interface/`, `templates/generate/enum/`.
+**Команда:** `generate.command.ts` с алиасом `g`, switch по типу,
+примеры в addHelpText.
+**Binary aliases:** `xpressify`, `xpressify-cli`, `x` — все указывают на cli.cjs.
+
+Поддерживаемые типы: route, middleware, class, interface, enum.
+
+---
+
+## 🎁 Phase 4 — Polish & Publish ← ТЕКУЩАЯ
+
+- [ ] **Динамическая версия** — читать из package.json вместо хардкода '0.0.1'
+- [ ] **README** — полное описание, примеры команд, список фич
+- [ ] **CHANGELOG.md** — conventional changelog
+- [ ] **Проверка через publint** — убедиться что пакет корректно опубликован
+- [ ] **Проверка через @arethetypeswrong/cli** — типы dual-package корректны
+- [ ] **npm publish --access public**
 
 ---
 
 ## 🔧 Технические решения
 
-**TypeScript 6.0** — удалён `baseUrl`, добавлен `ignoreDeprecations: "6.0"` в tsup.
-
-**picocolors** — вместо chalk v5 (ESM-only), работает в обоих форматах.
-
-**commander v14** — v15 ESM-only, требует Node 22.12+.
-
-**CLI только CJS** — `.cjs` однозначен, нативный `__dirname` без shim-ов.
-
-**FEATURE_DEPS как Record<Feature, ...>** — exhaustive record, новая фича без
-записи → ошибка компиляции, а не runtime-баг.
-
-**package.json через JSON.stringify** — безопаснее Handlebars для JSON,
-TypeScript гарантирует структуру, нет проблем с экранированием.
-
-**Двухуровневый error handling** — XpressifyError (ожидаемое) → только сообщение,
-Error (неожиданное) → сообщение + стектрейс. process.exit(1) для CI/CD.
+**TypeScript 6.0** — удалён `baseUrl`, `ignoreDeprecations: "6.0"` в tsup.
+**picocolors** — вместо chalk v5 (ESM-only).
+**commander v14** — v15 требует Node 22.12+.
+**CLI только CJS** — нативный `__dirname`, нет неоднозначности.
+**FEATURE_DEPS как Record<Feature, ...>** — exhaustive record, compile-time safety.
+**JSON.stringify для конфигов** — безопаснее Handlebars для JSON.
+**Единый ts-construct.generator** — параметрический полиморфизм вместо трёх файлов.
+**path.dirname/basename для имён** — `x g class src/models/User` работает как в Angular CLI.
+**Binary aliases** — `x` и `xpressify-cli` как алиасы для удобства.
 
 ---
 
 ## ❓ Открытые вопросы
 
-- **github-actions фича** — в FEATURE_DEPS пустой массив. Решить: генерировать
-  ли `.github/workflows/ci.yml` для сгенерированного проекта?
-- **Windows symbolic links** — `npm link` требует прав админа или Developer Mode.
+- **github-actions фича** — FEATURE_DEPS пустой, нужно решить генерировать ли CI.
+- **Windows symbolic links** — `npm link` требует прав админа.
 
 ---
 
 ## 🐛 Troubleshooting
 
-**`npm run build` падает с "No input files"** — запусти из `D:\xpressify`.
-
-**DTS Build падает** — проверь `ignoreDeprecations: "6.0"` в `tsup.config.ts`.
-
-**`xpressify` не найдена после `npm link`** — открой PowerShell от администратора.
+**`npm run build` падает** — запусти из `D:\xpressify`.
+**DTS Build падает** — проверь `ignoreDeprecations: "6.0"` в tsup.config.ts.
+**`x` не найдена** — открой PowerShell от администратора, повтори `npm link`.
 
 ---
 
@@ -150,13 +123,16 @@ Error (неожиданное) → сообщение + стектрейс. proc
 
 ### Session 01 — 18 апреля 2026
 Walking skeleton, dual-package инфраструктура, Phase 1 на 80%.
-Препятствия: имя `expressify-cli` занято → `xpressify`. TS 6.0 адаптация.
 
 ### Session 02 — 18 апреля 2026
-Завершена Phase 1 (Prettier, ESLint, Vitest, CI зелёный на Node 20/22).
-Полностью реализована Phase 2: утилиты, схемы, промпты с группами фич,
-три сервиса, Handlebars-шаблоны логгера, генератор, команда `new`.
-Ключевые решения: layered architecture, exhaustive Record, dependency injection.
+Phase 1 завершена (Prettier, ESLint, Vitest, CI зелёный).
+Phase 2 полностью реализована: утилиты, схемы, промпты, сервисы, генератор, команда `new`.
 
-### Session 03 — TBD
-Phase 3: команда `generate` с субкомандами `route` и `middleware`.
+### Session 03 — 18 апреля 2026
+Phase 3 полностью реализована: project-detector, генераторы route/middleware/
+class/interface/enum, команда `generate` с алиасом `g`, binary alias `x`.
+Ключевые решения: layered structure для route, единый ts-construct генератор,
+поддержка путей в именах компонентов.
+
+### Session 04 — TBD
+Phase 4: polish и публикация на npm.
