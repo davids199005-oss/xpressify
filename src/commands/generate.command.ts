@@ -5,6 +5,7 @@ import { generateRoute } from '../generators/route.generator';
 import { generateMiddleware } from '../generators/middleware.generator';
 import { logger } from '../utils/logger';
 import { XpressifyError } from '../utils/errors';
+import { generateTsConstruct } from '@/generators/ts-construct.generator';
 
 export function registerGenerateCommand(program: Command): void {
   program
@@ -16,7 +17,10 @@ Examples:
   $ xpressify generate route users
   $ xpressify g route user-profile
   $ xpressify generate middleware auth
-    `)
+  $ xpressify g class src/models/User
+  $ xpressify g interface src/types/Product
+  $ xpressify g enum src/enums/Status
+  `)
     .action(async (type: string, name: string) => {
       try {
         const projectRoot = await projectDetectorService.requireProjectRoot(
@@ -32,6 +36,12 @@ Examples:
           case 'middleware':
             await generateMiddleware(options);
             break;
+          case 'class':
+          case 'enum':
+          case 'interface':
+            await generateTsConstruct(options);
+            break;
+
         }
       } catch (err) {
         if (err instanceof XpressifyError) {
