@@ -1,18 +1,20 @@
 import { Command } from 'commander';
-import pc from 'picocolors';
+import { registerNewCommand } from '../commands/new.command';
 
 const program = new Command();
-program
-  .name('xpressify')
-  .description('Modern Express CLI with TypeScript, ESM and Zod')
-  .version('0.0.1');
 
 program
-  .command('hello')
-  .description('Command to verify cli writing')
-  .action(() => {
-    console.log(pc.cyanBright('Hello From Xpressify!'));
-    console.log(pc.dim('This is a simple CLI tool built with TypeScript and ESM.'));
-  });
+  .name('xpressify')
+  .description('Modern Express CLI — scaffold TypeScript + ESM projects instantly')
+  .version('0.0.1');
+
+// Регистрируем команду new
+registerNewCommand(program);
+
+// Если запущен без аргументов — показываем help вместо молчаливого выхода
+if (process.argv.length === 2) {
+  program.outputHelp();
+  process.exit(0);
+}
 
 program.parse();
