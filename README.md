@@ -11,7 +11,7 @@
        |_|                            |___/
 ```
 
-### Modern Express CLI — TypeScript · ESM · Zod All 
+### Modern Express CLI — TypeScript · ESM · Zod
 
 [![npm version](https://img.shields.io/npm/v/xpressify?style=flat-square&color=cc3534&logo=npm&logoColor=white)](https://www.npmjs.com/package/xpressify)
 [![npm downloads](https://img.shields.io/npm/dm/xpressify?style=flat-square&color=cc3534)](https://www.npmjs.com/package/xpressify)
