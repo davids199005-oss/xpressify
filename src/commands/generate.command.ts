@@ -20,6 +20,13 @@ Examples:
   $ xpressify g class src/models/User
   $ xpressify g interface src/types/Product
   $ xpressify g enum src/enums/Status
+  $ x new my-app
+  $ x g route users
+  $ x g route user-profile
+  $ x g middleware auth
+  $ x g class src/models/User
+  $ x g interface src/types/Product
+  $ x g enum src/enums/Status
   `)
     .action(async (type: string, name: string) => {
       try {

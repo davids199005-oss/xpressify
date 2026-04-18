@@ -19,6 +19,11 @@ export function registerNewCommand(program: Command): void {
   program
     .command('new [name]')
     .description('Scaffold a new Express + TypeScript project')
+    .addHelpText('after', `
+Examples:
+  $ x new my-app
+  $ xpressify new my-app
+  `)
     .action(async (name?: string) => {
       try {
         // Запускаем интерактивный диалог, передавая имя из аргумента CLI
