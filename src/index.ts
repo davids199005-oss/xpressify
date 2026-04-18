@@ -1,5 +1,5 @@
-export const VERSION = "0.0.1"
+export const VERSION = '0.0.1';
 
 export function greet(name: string): string {
-    return `Hello From Xpressify, ${name}!`;
+  return `Hello From Xpressify, ${name}!`;
 }
