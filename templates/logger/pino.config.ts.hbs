@@ -1,0 +1,18 @@
+import pino from 'pino';
+
+export const logger = pino({
+  level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
+  transport:
+    process.env.NODE_ENV !== 'production'
+      ? {
+          // pino-pretty форматирует JSON-логи в читаемый вид для разработки.
+          // В production оставляем чистый JSON — его читают системы мониторинга.
+          target: 'pino-pretty',
+          options: {
+            colorize: true,
+            translateTime: 'SYS:standard',
+            ignore: 'pid,hostname',
+          },
+        }
+      : undefined,
+});
