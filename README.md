@@ -12,7 +12,7 @@ __   __                        _  __
       | |                              __/ |
       |_|                             |___/
 
-  Modern Express CLI — scaffold TypeScript projects instantly
+  Modern Express CLI — scaffold TypeScript + ESM projects instantly
   Created by David Veryutin · github.com/davids199005-oss
 ```
 
@@ -25,38 +25,70 @@ __   __                        _  __
 
 ---
 
-## Overview
+## What is Xpressify?
 
+Xpressify is a CLI that removes the repetitive setup work of a new Express backend.
+Run one command and get a production-ready TypeScript + ESM project with structure,
+security middleware, and tooling already wired.
 
-Xpressify is a command-line tool that eliminates the boilerplate of starting a new Express + TypeScript project. Instead of spending 30 minutes configuring compilers, linters, and middleware, you run one command and get a production-ready project structure with everything already wired together.
+It also helps after project creation: use generators to add routes, middleware,
+and TypeScript constructs with consistent architecture and naming.
 
-It also grows with your project — the `generate` command lets you add routes, middleware, and TypeScript constructs directly from the terminal, following consistent conventions every time.
+---
+
+## Quick Start
+
+### 1) Install globally
 
 ```bash
 npm install -g xpressify
 ```
 
----
-
-## Commands
-
-### `x new <name>`
-
-Scaffolds a new Express + TypeScript project with an interactive prompt-driven setup.
+### 2) Create a new project
 
 ```bash
 x new my-api
 ```
 
-The CLI will ask you to choose a package manager (npm, pnpm, or yarn), which code quality tools to include, and which optional libraries you need. After confirming, it creates the project and installs all dependencies automatically.
+### 3) Start coding
 
-**What gets generated:**
+```bash
+cd my-api
+npm run dev
+```
+
+---
+
+## Command Reference
+
+| Command | Alias | Description |
+|---|---|---|
+| `x new [name]` | `xpressify new [name]` | Scaffold a new Express + TypeScript project with interactive prompts |
+| `x generate <type> <name>` | `x g <type> <name>` | Generate code inside an existing Xpressify project |
+| `x --help` | `xpressify --help` | Show help |
+| `x --version` | `xpressify --version` | Show installed version |
+
+### `new` command
+
+Creates a project and asks you to choose:
+
+- package manager (`npm`, `pnpm`, `yarn`)
+- quality tooling (ESLint, Prettier, Husky, GitHub Actions)
+- optional libraries (Zod, logger setup, JWT stack)
+
+Example:
+
+```bash
+x new my-api
+```
+
+Generated base structure:
 
 ```
 my-api/
 ├── src/
-│   ├── app.ts          — Express app with cors, helmet, rate-limit
-│   ├── server.ts       — Entry point with dotenv and PORT
+│   ├── app.ts
+│   ├── server.ts
 │   ├── routes/
 │   ├── controllers/
 │   ├── services/
@@ -68,57 +100,46 @@ my-api/
 └── package.json
 ```
 
-**Core dependencies — always included:**
+### `generate` command
 
-| Package | Purpose |
-|---|---|
-| `express` | Web framework |
-| `dotenv` | Environment variables |
-| `cors` | Cross-origin resource sharing |
-| `helmet` | Security headers |
-| `express-rate-limit` | Rate limiting |
-| `typescript` + `tsx` | TypeScript execution |
-| `nodemon` | Auto-restart on file changes |
-
-**Optional features — your choice:**
-
-| Feature | What it does |
-|---|---|
-| ESLint | Flat config with TypeScript-aware rules |
-| Prettier | Consistent code formatting |
-| Husky | Git hooks — auto-adds ESLint + Prettier |
-| GitHub Actions | CI pipeline: typecheck → lint → test → build |
-| Zod | Schema validation library |
-| Logger | Pino (fast, JSON) or Winston (multi-transport) — generates config |
-| JWT | Installs jsonwebtoken + bcryptjs with types |
-
----
-
-### `x g <type> <name>`
-
-Generates a typed component inside an existing project. Run from any subdirectory — Xpressify will find the project root automatically by walking up the directory tree until it finds a `package.json`.
+Generates components inside an existing project.
+You can run it from any subdirectory; Xpressify will detect the project root.
 
 ```bash
-x g route     users                   # router + controller + service
-x g middleware auth                   # typed Express middleware
-x g class     src/models/User         # TypeScript class
-x g interface src/types/Product       # TypeScript interface
-x g enum      src/enums/Status        # TypeScript enum
+x g route users
+x g middleware auth
+x g class src/models/User
+x g interface src/types/Product
+x g enum src/enums/Status
 ```
 
-For `route`, three files are created following layered architecture — the router goes into `src/routes/`, the controller into `src/controllers/`, and the service into `src/services/`. Each file includes typed handler stubs and a hint on how to register the router.
+Supported generator types:
 
-For `class`, `interface`, and `enum`, the name argument can include a path prefix. Writing `x g class src/models/User` places the file at exactly that location relative to the project root — no need to `cd` into subdirectories first.
+- `route` -> creates route + controller + service
+- `middleware` -> creates typed Express middleware
+- `class` -> creates TypeScript class
+- `interface` -> creates TypeScript interface
+- `enum` -> creates TypeScript enum
 
 ---
 
-## Aliases
+## What You Get by Default
 
-All three binary names are registered on global install:
+- Express app with practical middleware (`cors`, `helmet`, `express-rate-limit`)
+- TypeScript-first setup for modern Node.js (`>= 20`)
+- Environment variables support via `dotenv`
+- Clean layered folder structure for scalable APIs
+- Fast local workflow out of the box (`nodemon`, `tsx`)
+
+---
+
+## Binary Names
+
+All names below are installed globally and point to the same CLI:
 
 ```bash
-x new my-api             # shortest
-xpressify new my-api     # explicit
+x new my-api
+xpressify new my-api
 xpressify-cli new my-api
 ```
 
@@ -126,17 +147,34 @@ xpressify-cli new my-api
 
 ## Requirements
 
-Node.js 20 or higher.
+Node.js `>= 20.0.0`
 
 ```bash
-node --version   # should be ≥ v20.0.0
+node --version
 ```
+
+---
+
+## Development (for contributors)
+
+```bash
+npm install
+npm run dev
+```
+
+Useful scripts:
+
+- `npm run build` - build with `tsup`
+- `npm run typecheck` - run TypeScript checks
+- `npm run lint` - run ESLint
+- `npm run test` - run Vitest
+- `npm run test:coverage` - run tests with coverage
 
 ---
 
 ## License
 
-MIT — see [LICENSE](./LICENSE)
+MIT - see [LICENSE](./LICENSE)
 
 ---
 
