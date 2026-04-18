@@ -2,7 +2,6 @@
 
 <div align="center">
 
-<img src="./assets/banner.svg" alt="Xpressify — Modern Express CLI" width="900"/>
 
 [![npm version](https://img.shields.io/npm/v/xpressify?style=flat-square&color=cc3534&logo=npm&logoColor=white)](https://www.npmjs.com/package/xpressify)
 [![npm downloads](https://img.shields.io/npm/dm/xpressify?style=flat-square&color=cc3534)](https://www.npmjs.com/package/xpressify)
