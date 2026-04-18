@@ -1,0 +1,66 @@
+{
+  "name": "xpressify",
+  "version": "0.0.1",
+  "description": "Modern Express CLI — scaffolding and code generation for TypeScript, ESM and Zod-powered Express applications",
+  "keywords": [
+    "express",
+    "cli",
+    "scaffolding",
+    "generator",
+    "typescript",
+    "esm",
+    "zod",
+    "boilerplate",
+    "starter",
+    "backend"
+  ],
+  "author": "David Veryutin <davids199005@gmail.com> (https://github.com/davids199005-oss)",
+  "license": "MIT",
+  "homepage": "https://github.com/davids199005-oss/xpressify#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/davids199005-oss/xpressify.git"
+  },
+  "bugs": {
+    "url": "https://github.com/davids199005-oss/xpressify/issues"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    }
+  },
+  "bin": {
+    "xpressify": "./dist/bin/cli.cjs"
+  },
+  "files": [
+    "dist",
+    "templates",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint src --ext .ts",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run typecheck && npm run lint && npm run test && npm run build"
+  }
+}
