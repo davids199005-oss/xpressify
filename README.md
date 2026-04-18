@@ -2,19 +2,7 @@
 
 <div align="center">
 
-```
-__   __                        _  __
-\ \ / /                       (_)/ _|
- \ V / _ __  _ __ ___  ___ ___ _| |_ _   _
-  > < | '_ \| '__/ _ \/ __/ __| |  _| | | |
- / . \| |_) | |  |  __/\__ \__ \ | | | |_| |
-/_/ \_\ .__/|_|  \___||___/___/_|_|  \__, |
-      | |                              __/ |
-      |_|                             |___/
-
-  Modern Express CLI — scaffold TypeScript + ESM projects instantly
-  Created by David Veryutin · github.com/davids199005-oss
-```
+<img src="./assets/banner.svg" alt="Xpressify — Modern Express CLI" width="900"/>
 
 [![npm version](https://img.shields.io/npm/v/xpressify?style=flat-square&color=cc3534&logo=npm&logoColor=white)](https://www.npmjs.com/package/xpressify)
 [![npm downloads](https://img.shields.io/npm/dm/xpressify?style=flat-square&color=cc3534)](https://www.npmjs.com/package/xpressify)
