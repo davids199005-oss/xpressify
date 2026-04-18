@@ -2,7 +2,7 @@
 
 <div align="center">
 
-```
+<pre>
 __   __                        _  __
 \ \ / /                       (_)/ _|
  \ V / _ __  _ __ ___  ___ ___ _| |_ _   _
@@ -14,7 +14,7 @@ __   __                        _  __
 
   Modern Express CLI — scaffold TypeScript + ESM projects instantly
   Created by David Veryutin · github.com/davids199005-oss
-```
+</pre>
 
 ![Node](https://img.shields.io/badge/node-%3E%3D20-brightgreen?style=flat-square)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5%2B-3178c6?style=flat-square&logo=typescript&logoColor=white)
