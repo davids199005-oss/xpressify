@@ -5,10 +5,6 @@ import { templateService } from '../services/template.service';
 import { packageManagerService, resolveDependencies } from '../services/package-manager.service';
 import type { NewProjectOptions } from '../schemas/project-options.schema';
 
-/**
- * Core-зависимости которые устанавливаются в каждый сгенерированный проект.
- * Пользователь не выбирает их — они всегда есть, это основа нашего стека.
- */
 const CORE_DEPS = [
   'express',
   'dotenv',
@@ -26,23 +22,15 @@ const CORE_DEV_DEPS = [
   'nodemon',
 ];
 
-/**
- * Главная функция генератора — оркестрирует весь процесс создания проекта.
- *
- * Обрати внимание на структуру: функция разбита на чёткие этапы,
- * каждый из которых имеет свой спиннер. Это важно для UX — пользователь
- * всегда видит на каком шаге находится процесс.
- */
 export async function generateProject(options: NewProjectOptions): Promise<void> {
   const { name, targetDir, packageManager, features, loggerLibrary, installDependencies } = options;
 
   // ─── Шаг 1: Создание директории проекта ───────────────────────────────────
-  // Этот шаг может бросить ProjectExistsError — обрабатываем выше в команде
   const dirSpinner = logger.spinner(`Creating project directory ${name}...`);
   await filesystemService.createProjectDir(targetDir);
   dirSpinner.succeed(`Created directory: ${name}`);
 
-  // ─── Шаг 2: Генерация статических базовых файлов ──────────────────────────
+  // ─── Шаг 2: Генерация базовых файлов и структуры директорий ───────────────
   const filesSpinner = logger.spinner('Scaffolding base project files...');
   await scaffoldBaseFiles(targetDir, options);
   filesSpinner.succeed('Base files created');
@@ -58,7 +46,6 @@ export async function generateProject(options: NewProjectOptions): Promise<void>
 
   // ─── Шаг 4: Установка зависимостей ────────────────────────────────────────
   if (installDependencies) {
-    // Собираем финальные списки зависимостей из выбранных фич
     const { deps: featureDeps, devDeps: featureDevDeps } = resolveDependencies(
       features,
       loggerLibrary,
@@ -68,8 +55,8 @@ export async function generateProject(options: NewProjectOptions): Promise<void>
     const allDevDeps = [...CORE_DEV_DEPS, ...featureDevDeps];
 
     const depsSpinner = logger.spinner('Installing dependencies...');
-    // Останавливаем спиннер перед install потому что execa с stdio:'inherit'
-    // будет писать в терминал напрямую — спиннер будет мешать выводу
+    // Останавливаем спиннер перед install — execa с stdio:'inherit'
+    // пишет напрямую в терминал и будет конфликтовать со спиннером
     depsSpinner.stop();
 
     logger.info('\nInstalling dependencies:');
@@ -85,20 +72,14 @@ export async function generateProject(options: NewProjectOptions): Promise<void>
   printSuccessMessage(name, packageManager);
 }
 
-/**
- * Создаёт базовую структуру файлов проекта.
- * Вынесено в отдельную функцию чтобы generateProject() оставался читаемым —
- * это называется Extract Function рефакторинг.
- */
 async function scaffoldBaseFiles(
   targetDir: string,
   options: NewProjectOptions,
 ): Promise<void> {
   const { name } = options;
 
-  // package.json — генерируем вручную как объект, затем сериализуем в JSON.
-  // Это проще чем Handlebars-шаблон для JSON — нет проблем с экранированием
-  // и структура хорошо читается в коде.
+  // package.json генерируем как объект и сериализуем — это безопаснее
+  // чем Handlebars-шаблон для JSON, TypeScript гарантирует структуру
   const packageJson = {
     name,
     version: '0.1.0',
@@ -118,7 +99,6 @@ async function scaffoldBaseFiles(
     JSON.stringify(packageJson, null, 2),
   );
 
-  // tsconfig.json — статический файл, одинаковый для всех проектов
   const tsconfig = {
     compilerOptions: {
       target: 'ES2022',
@@ -141,25 +121,33 @@ async function scaffoldBaseFiles(
     JSON.stringify(tsconfig, null, 2),
   );
 
-  // .env.example — показывает какие переменные нужны в проекте
-  const envExample = [
-    'NODE_ENV=development',
-    'PORT=3000',
-  ].join('\n');
-
+  const envExample = ['NODE_ENV=development', 'PORT=3000'].join('\n');
   await filesystemService.writeFile(path.join(targetDir, '.env.example'), envExample);
 
-  // .gitignore
-  const gitignore = [
-    'node_modules',
-    'dist',
-    '.env',
-    '*.log',
-  ].join('\n');
-
+  const gitignore = ['node_modules', 'dist', '.env', '*.log'].join('\n');
   await filesystemService.writeFile(path.join(targetDir, '.gitignore'), gitignore);
 
-  // src/server.ts — точка входа приложения
+  // ─── Создаём базовую структуру директорий src/ ────────────────────────────
+  // Git не отслеживает пустые директории — добавляем .gitkeep в каждую.
+  // Это конвенция всего сообщества: пустой файл-маркер который говорит
+  // "эта папка должна существовать в репозитории". Когда пользователь
+  // добавит первый реальный файл, .gitkeep можно удалить.
+  const srcDirs = [
+    'src/routes',
+    'src/controllers',
+    'src/services',
+    'src/middlewares',
+    'src/utils',
+  ];
+
+  for (const dir of srcDirs) {
+    await filesystemService.writeFile(
+      path.join(targetDir, dir, '.gitkeep'),
+      '',
+    );
+  }
+
+  // src/server.ts — точка входа, подключает dotenv и запускает сервер
   const serverTs = `import 'dotenv/config';
 import app from './app';
 
@@ -170,9 +158,12 @@ app.listen(PORT, () => {
 });
 `;
 
-  await filesystemService.writeFile(path.join(targetDir, 'src', 'server.ts'), serverTs);
+  await filesystemService.writeFile(
+    path.join(targetDir, 'src', 'server.ts'),
+    serverTs,
+  );
 
-  // src/app.ts — Express-приложение
+  // src/app.ts — Express-приложение с базовыми middleware
   const appTs = `import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -197,14 +188,12 @@ app.get('/health', (_req, res) => {
 export default app;
 `;
 
-  await filesystemService.writeFile(path.join(targetDir, 'src', 'app.ts'), appTs);
+  await filesystemService.writeFile(
+    path.join(targetDir, 'src', 'app.ts'),
+    appTs,
+  );
 }
 
-/**
- * Выводит финальное сообщение с инструкциями.
- * Отдельная функция потому что это чисто UI-логика — не смешиваем
- * с бизнес-логикой генератора.
- */
 function printSuccessMessage(name: string, packageManager: string): void {
   console.log('');
   logger.success(`Project "${name}" created successfully!`);
