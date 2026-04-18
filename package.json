@@ -44,9 +44,9 @@
     }
   },
   "bin": {
-    "xpressify": "./dist/bin/cli.cjs",
-    "x": "./dist/bin/cli.cjs",
-    "xpressify-cli": "./dist/bin/cli.cjs"
+    "xpressify": "dist/bin/cli.cjs",
+    "x": "dist/bin/cli.cjs",
+    "xpressify-cli": "dist/bin/cli.cjs"
   },
   "files": [
     "dist",

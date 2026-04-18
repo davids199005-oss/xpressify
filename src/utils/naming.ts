@@ -36,7 +36,7 @@ export function toCamelCase(input: string): string {
   const words = toWords(input);
   return words
     .map((word, index) =>
-      index === 0 ? word : word[0]!.toUpperCase() + word.slice(1),
+      index === 0 ? word : word.charAt(0).toUpperCase() + word.slice(1),
     )
     .join('');
 }
@@ -44,7 +44,7 @@ export function toCamelCase(input: string): string {
 /** "my-app" → "MyApp" | "my_app" → "MyApp" */
 export function toPascalCase(input: string): string {
   return toWords(input)
-    .map((word) => word[0]!.toUpperCase() + word.slice(1))
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join('');
 }
 
