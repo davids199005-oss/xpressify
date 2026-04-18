@@ -2,20 +2,31 @@
 
 <div align="center">
 
-<img src="https://raw.githubusercontent.com/davids199005-oss/xpressify/main/assets/banner.svg" alt="Xpressify banner" width="720"/>
+```
+__   __                        _  __
+\ \ / /                       (_)/ _|
+ \ V / _ __  _ __ ___  ___ ___ _| |_ _   _
+  > < | '_ \| '__/ _ \/ __/ __| |  _| | | |
+ / . \| |_) | |  |  __/\__ \__ \ | | | |_| |
+/_/ \_\ .__/|_|  \___||___/___/_|_|  \__, |
+      | |                              __/ |
+      |_|                             |___/
+
+  Modern Express CLI — scaffold TypeScript projects instantly
+  Created by David Veryutin · github.com/davids199005-oss
+```
 
 ![Node](https://img.shields.io/badge/node-%3E%3D20-brightgreen?style=flat-square)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5%2B-3178c6?style=flat-square&logo=typescript&logoColor=white)
 ![License](https://img.shields.io/badge/license-MIT-purple?style=flat-square)
 ![npm](https://img.shields.io/badge/npm-xpressify-cc3534?style=flat-square&logo=npm&logoColor=white)
 
-Built by [David Veryutin](https://github.com/davids199005-oss)
-
 </div>
 
 ---
 
 ## Overview
+
 
 Xpressify is a command-line tool that eliminates the boilerplate of starting a new Express + TypeScript project. Instead of spending 30 minutes configuring compilers, linters, and middleware, you run one command and get a production-ready project structure with everything already wired together.
 
@@ -36,7 +47,6 @@ Scaffolds a new Express + TypeScript project with an interactive prompt-driven s
 ```bash
 x new my-api
 ```
-
 
 The CLI will ask you to choose a package manager (npm, pnpm, or yarn), which code quality tools to include, and which optional libraries you need. After confirming, it creates the project and installs all dependencies automatically.
 
@@ -84,7 +94,7 @@ my-api/
 
 ---
 
-### `x g <type> <n>`
+### `x g <type> <name>`
 
 Generates a typed component inside an existing project. Run from any subdirectory — Xpressify will find the project root automatically by walking up the directory tree until it finds a `package.json`.
 
@@ -107,8 +117,8 @@ For `class`, `interface`, and `enum`, the name argument can include a path prefi
 All three binary names are registered on global install:
 
 ```bash
-x new my-api           # shortest
-xpressify new my-api   # explicit
+x new my-api             # shortest
+xpressify new my-api     # explicit
 xpressify-cli new my-api
 ```
 
