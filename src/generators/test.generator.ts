@@ -4,6 +4,7 @@ import { templateService } from '../services/template.service';
 import { resolveNames } from '../utils/naming';
 import { logger } from '../utils/logger';
 import { XpressifyError } from '../utils/errors';
+import { assertWithinProject, toPosix } from './project-boundary';
 import type { GenerateOptions } from '../schemas/generate-options.schema';
 
 /**
@@ -32,11 +33,14 @@ export async function generateTest(options: GenerateOptions): Promise<void> {
     : path.resolve(projectRoot, dir);
 
   const outputPath = path.resolve(outputDir, `${names.kebab}.test.ts`);
+  if (dir !== '.') {
+    await assertWithinProject(outputPath, projectRoot, name);
+  }
   const templatePath = `generate/test/${framework}.test.ts.hbs`;
 
   await templateService.renderToFile(templatePath, outputPath, { ...names });
 
-  const displayPath = path.relative(projectRoot, outputPath).split(path.sep).join('/');
+  const displayPath = toPosix(path.relative(projectRoot, outputPath));
   logger.success(`Created ${framework} test: ${displayPath}`);
 }
 

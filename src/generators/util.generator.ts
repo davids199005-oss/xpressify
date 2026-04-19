@@ -2,6 +2,7 @@ import path from 'path';
 import { templateService } from '../services/template.service';
 import { resolveNames } from '../utils/naming';
 import { logger } from '../utils/logger';
+import { assertWithinProject, toPosix } from './project-boundary';
 import type { GenerateOptions } from '../schemas/generate-options.schema';
 
 /**
@@ -28,12 +29,16 @@ export async function generateUtil(options: GenerateOptions): Promise<void> {
 
   const outputPath = path.resolve(outputDir, `${names.kebab}.util.ts`);
 
+  if (dir !== '.') {
+    await assertWithinProject(outputPath, projectRoot, name);
+  }
+
   await templateService.renderToFile(
     'generate/util/util.ts.hbs',
     outputPath,
     { ...names },
   );
 
-  const displayPath = path.relative(projectRoot, outputPath).split(path.sep).join('/');
+  const displayPath = toPosix(path.relative(projectRoot, outputPath));
   logger.success(`Created util: ${displayPath}`);
 }

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { execa } from 'execa';
 import { tmpdir } from 'os';
-import { mkdtemp, rm, readFile, access } from 'fs/promises';
+import { mkdtemp, rm, readFile, writeFile, access } from 'fs/promises';
 import path from 'path';
 
 
@@ -196,6 +196,42 @@ describe('CLI smoke tests', () => {
       // это покрыто отдельным блоком ниже.
       expect(file).toContain('export interface CreateOrderDto');
     });
+
+    it('dto rejects paths that resolve outside project root', async () => {
+      const escapedPath = path.join(workDir, 'outside-dto.dto.ts');
+      const result = await execa(
+        'node',
+        [CLI_PATH, 'g', 'dto', 'src/../../outside-dto'],
+        {
+          cwd: projectDir,
+          reject: false,
+        },
+      );
+
+      expect(result.exitCode).not.toBe(0);
+      expect(`${result.stdout}\n${result.stderr}`).toContain(
+        'Refusing to create file outside of project root',
+      );
+      await expect(access(escapedPath)).rejects.toThrow();
+    });
+
+    it('util rejects paths that resolve outside project root', async () => {
+      const escapedPath = path.join(workDir, 'outside-util.util.ts');
+      const result = await execa(
+        'node',
+        [CLI_PATH, 'g', 'util', 'src/../../outside-util'],
+        {
+          cwd: projectDir,
+          reject: false,
+        },
+      );
+
+      expect(result.exitCode).not.toBe(0);
+      expect(`${result.stdout}\n${result.stderr}`).toContain(
+        'Refusing to create file outside of project root',
+      );
+      await expect(access(escapedPath)).rejects.toThrow();
+    });
   });
 });
 
@@ -268,5 +304,41 @@ describe('CLI smoke tests — optional features', () => {
       'utf-8',
     );
     expect(sample).toContain("from 'vitest'");
+  }, 30000);
+
+  it('test generator rejects paths that resolve outside project root', async () => {
+    const projectDir = path.join(workDir, 'with-testing-safe-paths');
+    await execa(
+      'node',
+      [CLI_PATH, 'new', 'with-testing-safe-paths', '--yes', '--no-install',
+        '--features', 'testing', '--testing-library', 'vitest'],
+      { cwd: workDir },
+    );
+
+    const packageJsonPath = path.join(projectDir, 'package.json');
+    const packageJson = JSON.parse(await readFile(packageJsonPath, 'utf-8')) as {
+      devDependencies?: Record<string, string>;
+    };
+    packageJson.devDependencies = {
+      ...(packageJson.devDependencies ?? {}),
+      vitest: '^4.1.4',
+    };
+    await writeFile(packageJsonPath, JSON.stringify(packageJson, null, 2), 'utf-8');
+
+    const escapedPath = path.join(workDir, 'outside-test.test.ts');
+    const result = await execa(
+      'node',
+      [CLI_PATH, 'g', 'test', 'src/../../outside-test'],
+      {
+        cwd: projectDir,
+        reject: false,
+      },
+    );
+
+    expect(result.exitCode).not.toBe(0);
+    expect(`${result.stdout}\n${result.stderr}`).toContain(
+      'Refusing to create file outside of project root',
+    );
+    await expect(access(escapedPath)).rejects.toThrow();
   }, 30000);
 });

@@ -3,6 +3,7 @@ import path from 'path';
 import { templateService } from '../services/template.service';
 import { resolveNames } from '../utils/naming';
 import { logger } from '../utils/logger';
+import { assertWithinProject, toPosix } from './project-boundary';
 import type { GenerateOptions } from '../schemas/generate-options.schema';
 
 /**
@@ -32,6 +33,10 @@ export async function generateDto(options: GenerateOptions): Promise<void> {
 
   const outputPath = path.resolve(outputDir, `${names.kebab}.dto.ts`);
 
+  if (dir !== '.') {
+    await assertWithinProject(outputPath, projectRoot, name);
+  }
+
   const hasZod = await projectHasZod(projectRoot);
   const templatePath = hasZod
     ? 'generate/dto/dto.zod.ts.hbs'
@@ -39,7 +44,7 @@ export async function generateDto(options: GenerateOptions): Promise<void> {
 
   await templateService.renderToFile(templatePath, outputPath, { ...names });
 
-  const displayPath = path.relative(projectRoot, outputPath).split(path.sep).join('/');
+  const displayPath = toPosix(path.relative(projectRoot, outputPath));
   logger.success(`Created dto: ${displayPath}`);
 
   if (!hasZod) {
