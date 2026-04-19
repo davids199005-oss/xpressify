@@ -68,3 +68,34 @@ export class NotXpressifyProjectError extends XpressifyError {
     );
   }
 }
+
+/**
+ * Type guard для работы с unknown в catch-блоках.
+ *
+ * TypeScript типизирует `catch (err)` как unknown по умолчанию (useUnknownInCatchVariables).
+ * Для безопасного доступа к err.message нам нужен guard, потому что JavaScript
+ * позволяет throw'ать что угодно — строки, объекты, null. В реальности такое
+ * бывает редко, но type-safe код обязан это учитывать.
+ *
+ * Использовать так:
+ *   catch (err) {
+ *     const msg = err instanceof XpressifyError
+ *       ? err.message
+ *       : isError(err) ? err.message : String(err);
+ *   }
+ */
+export function isError(err: unknown): err is Error {
+  return err instanceof Error;
+}
+
+/**
+ * Извлекает человекочитаемое сообщение из произвольно брошенного значения.
+ * XpressifyError и обычный Error → err.message. Остальное — приводится к строке.
+ *
+ * Нужна чтобы не дублировать цепочку проверок в каждом catch-блоке команд.
+ */
+export function getErrorMessage(err: unknown): string {
+  if (err instanceof XpressifyError) return err.message;
+  if (isError(err)) return err.message;
+  return String(err);
+}

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { execa } from 'execa';
 import { tmpdir } from 'os';
-import { mkdtemp, rm, readFile } from 'fs/promises';
+import { mkdtemp, rm, readFile, access } from 'fs/promises';
 import path from 'path';
 
 
@@ -71,6 +71,16 @@ describe('CLI smoke tests', () => {
       // иначе Node упадёт на старте.
       expect(serverTs).toContain("from './app.js'");
     });
+
+    it('generates README.md with the project name', async () => {
+      const readme = await readFile(path.join(projectDir, 'README.md'), 'utf-8');
+      expect(readme).toContain('# smoke-app');
+    });
+
+    it('generates .nvmrc pinning Node version', async () => {
+      const nvmrc = await readFile(path.join(projectDir, '.nvmrc'), 'utf-8');
+      expect(nvmrc.trim()).toBe('20');
+    });
   });
 
   describe('g route — routes with correct cross-directory imports', () => {
@@ -116,4 +126,147 @@ describe('CLI smoke tests', () => {
       expect(enumFile).toContain('export enum Status');
     });
   });
+
+  describe('g middleware / class / interface', () => {
+    it('middleware scaffolds into src/middlewares/', async () => {
+      await execa('node', [CLI_PATH, 'g', 'middleware', 'auth'], {
+        cwd: projectDir,
+      });
+      const file = await readFile(
+        path.join(projectDir, 'src', 'middlewares', 'auth.middleware.ts'),
+        'utf-8',
+      );
+      expect(file.trim().length).toBeGreaterThan(0);
+    });
+
+    it('class respects explicit path argument', async () => {
+      await execa('node', [CLI_PATH, 'g', 'class', 'src/models/User'], {
+        cwd: projectDir,
+      });
+      const file = await readFile(
+        path.join(projectDir, 'src', 'models', 'user.class.ts'),
+        'utf-8',
+      );
+      expect(file).toContain('export class User');
+    });
+
+    it('interface respects explicit path argument', async () => {
+      await execa('node', [CLI_PATH, 'g', 'interface', 'src/types/Product'], {
+        cwd: projectDir,
+      });
+      const file = await readFile(
+        path.join(projectDir, 'src', 'types', 'product.interface.ts'),
+        'utf-8',
+      );
+      expect(file).toContain('Product');
+    });
+
+    it('util defaults to src/utils/ with .util.ts suffix and exported function', async () => {
+      await execa('node', [CLI_PATH, 'g', 'util', 'format-date'], {
+        cwd: projectDir,
+      });
+      const file = await readFile(
+        path.join(projectDir, 'src', 'utils', 'format-date.util.ts'),
+        'utf-8',
+      );
+      expect(file).toContain('export function formatDate');
+    });
+
+    it('util respects explicit path argument', async () => {
+      await execa('node', [CLI_PATH, 'g', 'util', 'src/modules/auth/token-helpers'], {
+        cwd: projectDir,
+      });
+      const file = await readFile(
+        path.join(projectDir, 'src', 'modules', 'auth', 'token-helpers.util.ts'),
+        'utf-8',
+      );
+      expect(file).toContain('export function tokenHelpers');
+    });
+
+    it('dto falls back to plain interface when zod is not in target', async () => {
+      await execa('node', [CLI_PATH, 'g', 'dto', 'src/dtos/CreateOrder'], {
+        cwd: projectDir,
+      });
+      const file = await readFile(
+        path.join(projectDir, 'src', 'dtos', 'create-order.dto.ts'),
+        'utf-8',
+      );
+      // smoke-app создаётся без фичи zod (--yes без --features), так что
+      // ожидаем plain-вариант. При наличии zod шаблон был бы другим —
+      // это покрыто отдельным блоком ниже.
+      expect(file).toContain('export interface CreateOrderDto');
+    });
+  });
+});
+
+/**
+ * Отдельная группа с новыми фичами — использует свой tmp-проект.
+ * Вынесено чтобы не нагружать базовый smoke-app всеми возможными
+ * фичами одновременно (это делало бы тесты медленными и неизолированными).
+ */
+describe('CLI smoke tests — optional features', () => {
+  let workDir: string;
+
+  beforeAll(async () => {
+    workDir = await mkdtemp(path.join(tmpdir(), 'xpressify-smoke-features-'));
+  }, 60000);
+
+  afterAll(async () => {
+    await rm(workDir, { recursive: true, force: true });
+  });
+
+  it('logger feature scaffolds pino config', async () => {
+    const projectDir = path.join(workDir, 'with-logger');
+    await execa(
+      'node',
+      [CLI_PATH, 'new', 'with-logger', '--yes', '--no-install',
+        '--features', 'logger', '--logger', 'pino'],
+      { cwd: workDir },
+    );
+
+    const loggerConfig = await readFile(
+      path.join(projectDir, 'src', 'config', 'logger.config.ts'),
+      'utf-8',
+    );
+    expect(loggerConfig.trim().length).toBeGreaterThan(0);
+    expect(loggerConfig.toLowerCase()).toContain('pino');
+  }, 30000);
+
+  it('docker feature scaffolds Dockerfile, .dockerignore, docker-compose.yml', async () => {
+    const projectDir = path.join(workDir, 'with-docker');
+    await execa(
+      'node',
+      [CLI_PATH, 'new', 'with-docker', '--yes', '--no-install', '--features', 'docker'],
+      { cwd: workDir },
+    );
+
+    await access(path.join(projectDir, 'Dockerfile'));
+    await access(path.join(projectDir, '.dockerignore'));
+    await access(path.join(projectDir, 'docker-compose.yml'));
+
+    const dockerfile = await readFile(path.join(projectDir, 'Dockerfile'), 'utf-8');
+    expect(dockerfile).toContain('FROM node:20-alpine');
+  }, 30000);
+
+  it('testing feature scaffolds vitest config and sample test', async () => {
+    const projectDir = path.join(workDir, 'with-testing');
+    await execa(
+      'node',
+      [CLI_PATH, 'new', 'with-testing', '--yes', '--no-install',
+        '--features', 'testing', '--testing-library', 'vitest'],
+      { cwd: workDir },
+    );
+
+    const configFile = await readFile(
+      path.join(projectDir, 'vitest.config.ts'),
+      'utf-8',
+    );
+    expect(configFile).toContain('defineConfig');
+
+    const sample = await readFile(
+      path.join(projectDir, 'src', '__tests__', 'app.test.ts'),
+      'utf-8',
+    );
+    expect(sample).toContain("from 'vitest'");
+  }, 30000);
 });

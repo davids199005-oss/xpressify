@@ -1,5 +1,21 @@
 import { execa } from 'execa';
-import type { PackageManager, Feature, LoggerLibrary } from '../schemas/project-options.schema';
+import type {
+  PackageManager,
+  Feature,
+  LoggerLibrary,
+  TestingLibrary,
+} from '../schemas/project-options.schema';
+import { XpressifyError } from '../utils/errors';
+
+/**
+ * Таймаут на одну команду установки — 10 минут.
+ *
+ * Выбран как компромисс: монорепы с большим числом зависимостей на медленном
+ * диске/сети действительно могут требовать несколько минут, но бесконечное
+ * ожидание — худший UX (CI-раннеры просто уйдут в таймаут раннера без
+ * диагностики). 10 минут покрывают 99% реальных случаев.
+ */
+const INSTALL_TIMEOUT_MS = 10 * 60 * 1000;
 
 /**
  * Маппинг фич на npm-пакеты.
@@ -54,6 +70,19 @@ const FEATURE_DEPS: Record<Feature, { deps: string[]; devDeps: string[] }> = {
     deps: ['jsonwebtoken', 'bcryptjs'],
     devDeps: ['@types/jsonwebtoken', '@types/bcryptjs'],
   },
+  docker: {
+    // Docker — это только файлы (Dockerfile, .dockerignore, compose).
+    // Никаких npm-пакетов не требуется.
+    deps: [],
+    devDeps: [],
+  },
+  testing: {
+    // Конкретные пакеты тест-фреймворка определяются отдельно через
+    // getTestingDeps(), по аналогии с logger — выбор vitest/jest
+    // — это отдельное поле testingLibrary в NewProjectOptions.
+    deps: [],
+    devDeps: [],
+  },
 };
 
 /**
@@ -78,12 +107,34 @@ export function getLoggerDeps(library: LoggerLibrary): {
 }
 
 /**
+ * Возвращает пакеты для выбранного тест-фреймворка.
+ * Vitest и Jest ставятся только в devDependencies.
+ */
+export function getTestingDeps(library: TestingLibrary): {
+  deps: string[];
+  devDeps: string[];
+} {
+  if (library === 'vitest') {
+    return {
+      deps: [],
+      devDeps: ['vitest'],
+    };
+  }
+  return {
+    deps: [],
+    // ts-jest нужен чтобы Jest понимал TypeScript-исходники в ESM-проекте.
+    devDeps: ['jest', '@types/jest', 'ts-jest'],
+  };
+}
+
+/**
  * Собирает финальные списки зависимостей из выбранных фич.
  * Возвращает два дедуплицированных массива — для deps и devDeps.
  */
 export function resolveDependencies(
   features: Feature[],
   loggerLibrary: LoggerLibrary | null,
+  testingLibrary: TestingLibrary | null = null,
 ): { deps: string[]; devDeps: string[] } {
   const deps = new Set<string>();
   const devDeps = new Set<string>();
@@ -99,6 +150,13 @@ export function resolveDependencies(
     const loggerDeps = getLoggerDeps(loggerLibrary);
     loggerDeps.deps.forEach((d) => deps.add(d));
     loggerDeps.devDeps.forEach((d) => devDeps.add(d));
+  }
+
+  // Аналогично — пакеты тест-фреймворка
+  if (testingLibrary) {
+    const testingDeps = getTestingDeps(testingLibrary);
+    testingDeps.deps.forEach((d) => deps.add(d));
+    testingDeps.devDeps.forEach((d) => devDeps.add(d));
   }
 
   return {
@@ -140,12 +198,35 @@ export const packageManagerService = {
     const devFlag = packageManager === 'yarn' ? '--dev' : '--save-dev';
     const flags = isDev ? [devFlag] : [];
 
-    await execa(bin, [subcommand, ...flags, ...deps], {
-      cwd: targetDir,
-      // stdio: 'inherit' — вывод команды идёт напрямую в терминал пользователя.
-      // Альтернатива 'pipe' — мы перехватываем вывод, но тогда пользователь
-      // не видит прогресс установки в реальном времени.
-      stdio: 'inherit',
-    });
+    try {
+      await execa(bin, [subcommand, ...flags, ...deps], {
+        cwd: targetDir,
+        // stdio: 'inherit' — вывод команды идёт напрямую в терминал пользователя.
+        // Альтернатива 'pipe' — мы перехватываем вывод, но тогда пользователь
+        // не видит прогресс установки в реальном времени.
+        stdio: 'inherit',
+        timeout: INSTALL_TIMEOUT_MS,
+      });
+    } catch (err: unknown) {
+      // execa бросает ошибку с флагом timedOut:true если превышен timeout.
+      // Переводим её в XpressifyError с понятным сообщением — это ожидаемый
+      // пользовательский сценарий (медленная сеть/приватный реестр без auth),
+      // а не внутренний баг, поэтому стектрейс показывать ни к чему.
+      const e = err as { timedOut?: boolean; command?: string; shortMessage?: string };
+      if (e.timedOut) {
+        throw new XpressifyError(
+          `Installation timed out after ${INSTALL_TIMEOUT_MS / 60_000} minutes ` +
+            `running "${e.command ?? `${bin} ${subcommand}`}". ` +
+            `Check your network connection and that the ${packageManager} registry is reachable.`,
+        );
+      }
+      // Любая другая ошибка выполнения (нет бинарника, код != 0) — также
+      // уводим пользователя от стектрейса: он чаще всего видит ошибки
+      // npm/pnpm/yarn в своём stdout выше и так.
+      throw new XpressifyError(
+        `"${bin} ${subcommand}" failed${e.shortMessage ? `: ${e.shortMessage}` : ''}. ` +
+          `See output above for details.`,
+      );
+    }
   },
 };

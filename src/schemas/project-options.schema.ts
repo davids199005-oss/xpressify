@@ -10,7 +10,13 @@ export const FeatureSchema = z.enum([
   'zod',
   'logger',
   'jwt',
+  'docker',
+  'testing',
 ]);
+
+// Тест-фреймворки для фичи 'testing' — отдельная схема аналогично LoggerLibrary.
+// Условный промпт срабатывает только если выбрана фича 'testing'.
+export const TestingLibrarySchema = z.enum(['vitest', 'jest']);
 
 // Отдельная схема для выбора логгера — появляется только если выбрана фича 'logger'
 export const LoggerLibrarySchema = z.enum(['pino', 'winston']);
@@ -37,6 +43,8 @@ export const NewProjectOptionsSchema = z.object({
   features: z.array(FeatureSchema).default([]),
   // Выбор конкретной библиотеки логгера — null если фича 'logger' не выбрана
   loggerLibrary: LoggerLibrarySchema.nullable().default(null),
+  // Выбор тест-фреймворка — null если фича 'testing' не выбрана
+  testingLibrary: TestingLibrarySchema.nullable().default(null),
   installDependencies: z.boolean().default(true),
 });
 
@@ -44,3 +52,4 @@ export type NewProjectOptions = z.infer<typeof NewProjectOptionsSchema>;
 export type PackageManager = z.infer<typeof PackageManagerSchema>;
 export type Feature = z.infer<typeof FeatureSchema>;
 export type LoggerLibrary = z.infer<typeof LoggerLibrarySchema>;
+export type TestingLibrary = z.infer<typeof TestingLibrarySchema>;

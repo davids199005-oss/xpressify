@@ -4,11 +4,14 @@ import {
   NewProjectOptionsSchema,
   GenerateOptionsSchema,
   FeatureSchema,
+  TestingLibrarySchema,
   resolveNames,
   XpressifyError,
   ProjectExistsError,
   TemplateNotFoundError,
 } from '../src/index';
+import { applyFeatureDependencies, getAutoAddedFeatures } from '../src/utils/feature-dependencies';
+import { isError, getErrorMessage } from '../src/utils/errors';
 
 describe('VERSION', () => {
   it('should match package.json version', () => {
@@ -73,18 +76,105 @@ describe('GenerateOptionsSchema', () => {
       GenerateOptionsSchema.parse({ type: 'component', name: 'btn', projectRoot: '/tmp' }),
     ).toThrow();
   });
+
+  it('should accept the new dto, test and util types', () => {
+    expect(() =>
+      GenerateOptionsSchema.parse({ type: 'dto', name: 'User', projectRoot: '/tmp' }),
+    ).not.toThrow();
+    expect(() =>
+      GenerateOptionsSchema.parse({ type: 'test', name: 'users', projectRoot: '/tmp' }),
+    ).not.toThrow();
+    expect(() =>
+      GenerateOptionsSchema.parse({ type: 'util', name: 'format-date', projectRoot: '/tmp' }),
+    ).not.toThrow();
+  });
 });
 
 describe('FeatureSchema', () => {
   it('should accept all valid features', () => {
-    const features = ['eslint', 'prettier', 'husky', 'github-actions', 'zod', 'logger', 'jwt'];
+    const features = [
+      'eslint',
+      'prettier',
+      'husky',
+      'github-actions',
+      'zod',
+      'logger',
+      'jwt',
+      'docker',
+      'testing',
+    ];
     for (const f of features) {
       expect(() => FeatureSchema.parse(f)).not.toThrow();
     }
   });
 
   it('should reject unknown features', () => {
-    expect(() => FeatureSchema.parse('docker')).toThrow();
+    expect(() => FeatureSchema.parse('prisma')).toThrow();
+  });
+});
+
+describe('TestingLibrarySchema', () => {
+  it('accepts vitest and jest', () => {
+    expect(() => TestingLibrarySchema.parse('vitest')).not.toThrow();
+    expect(() => TestingLibrarySchema.parse('jest')).not.toThrow();
+  });
+
+  it('rejects anything else', () => {
+    expect(() => TestingLibrarySchema.parse('mocha')).toThrow();
+  });
+});
+
+describe('applyFeatureDependencies', () => {
+  it('adds eslint and prettier when husky is selected', () => {
+    const result = applyFeatureDependencies(['husky']);
+    expect(result).toContain('eslint');
+    expect(result).toContain('prettier');
+    expect(result).toContain('husky');
+  });
+
+  it('is idempotent — adding husky twice does not duplicate deps', () => {
+    const result = applyFeatureDependencies(['husky', 'eslint']);
+    expect(result.filter((f) => f === 'eslint')).toHaveLength(1);
+  });
+
+  it('leaves unrelated feature sets alone', () => {
+    const result = applyFeatureDependencies(['zod', 'jwt']);
+    expect(result.sort()).toEqual(['jwt', 'zod']);
+  });
+
+  it('does not mutate its input', () => {
+    const input = ['husky'] as const;
+    const copy = [...input];
+    applyFeatureDependencies([...input]);
+    expect([...input]).toEqual(copy);
+  });
+});
+
+describe('getAutoAddedFeatures', () => {
+  it('reports only features that were not originally selected', () => {
+    const result = getAutoAddedFeatures(['husky'], ['husky', 'eslint', 'prettier']);
+    expect(result.sort()).toEqual(['eslint', 'prettier']);
+  });
+
+  it('returns empty when nothing was auto-added', () => {
+    const result = getAutoAddedFeatures(['zod'], ['zod']);
+    expect(result).toEqual([]);
+  });
+});
+
+describe('isError / getErrorMessage', () => {
+  it('isError narrows Error instances', () => {
+    expect(isError(new Error('boom'))).toBe(true);
+    expect(isError(new XpressifyError('x'))).toBe(true);
+    expect(isError('string')).toBe(false);
+    expect(isError(null)).toBe(false);
+  });
+
+  it('getErrorMessage unwraps message or stringifies fallback', () => {
+    expect(getErrorMessage(new XpressifyError('hello'))).toBe('hello');
+    expect(getErrorMessage(new Error('oops'))).toBe('oops');
+    expect(getErrorMessage('raw string')).toBe('raw string');
+    expect(getErrorMessage(null)).toBe('null');
   });
 });
 

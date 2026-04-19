@@ -13,6 +13,9 @@ export const GenerateTypeSchema = z.enum([
   'class',
   'interface',
   'enum',
+  'dto',
+  'test',
+  'util',
 ]);
 
 export const GenerateOptionsSchema = z.object({

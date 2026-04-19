@@ -31,6 +31,8 @@ const BASE_FILES: ReadonlyArray<{ template: string; output: string }> = [
   { template: 'base/tsconfig.json.hbs', output: 'tsconfig.json' },
   { template: 'base/env.example.hbs',   output: '.env.example' },
   { template: 'base/gitignore.hbs',     output: '.gitignore' },
+  { template: 'base/README.md.hbs',     output: 'README.md' },
+  { template: 'base/nvmrc.hbs',         output: '.nvmrc' },
   { template: 'base/server.ts.hbs',     output: 'src/server.ts' },
   { template: 'base/app.ts.hbs',        output: 'src/app.ts' },
 ];
@@ -44,7 +46,15 @@ const SRC_DIRS = [
 ];
 
 export async function generateProject(options: NewProjectOptions): Promise<void> {
-  const { name, targetDir, packageManager, features, loggerLibrary, installDependencies } = options;
+  const {
+    name,
+    targetDir,
+    packageManager,
+    features,
+    loggerLibrary,
+    testingLibrary,
+    installDependencies,
+  } = options;
 
   // ─── Шаг 1: Создание директории проекта ───────────────────────────────────
   // Создаём директорию ДО try/catch блока — если её создание падает
@@ -70,21 +80,75 @@ export async function generateProject(options: NewProjectOptions): Promise<void>
       loggerSpinner.succeed(`Logger config created (${loggerLibrary})`);
     }
 
+    if (features.includes('docker')) {
+      const dockerSpinner = logger.spinner('Adding Docker files...');
+      await templateService.renderToFile(
+        'docker/Dockerfile.hbs',
+        path.join(targetDir, 'Dockerfile'),
+        { name },
+      );
+      await templateService.renderToFile(
+        'docker/dockerignore.hbs',
+        path.join(targetDir, '.dockerignore'),
+        {},
+      );
+      await templateService.renderToFile(
+        'docker/docker-compose.yml.hbs',
+        path.join(targetDir, 'docker-compose.yml'),
+        { name },
+      );
+      dockerSpinner.succeed('Docker files created');
+    }
+
+    if (features.includes('testing') && testingLibrary) {
+      const testingSpinner = logger.spinner(`Adding ${testingLibrary} config and sample test...`);
+      await templateService.renderToFile(
+        `testing/${testingLibrary}/config.hbs`,
+        path.join(
+          targetDir,
+          testingLibrary === 'vitest' ? 'vitest.config.ts' : 'jest.config.ts',
+        ),
+        {},
+      );
+      await templateService.renderToFile(
+        `testing/${testingLibrary}/sample.test.ts.hbs`,
+        path.join(targetDir, 'src', '__tests__', 'app.test.ts'),
+        {},
+      );
+      testingSpinner.succeed(`Testing setup created (${testingLibrary})`);
+    }
+
     // ─── Шаг 4: Установка зависимостей ──────────────────────────────────────
     if (installDependencies) {
       const { deps: featureDeps, devDeps: featureDevDeps } = resolveDependencies(
         features,
         loggerLibrary,
+        testingLibrary,
       );
 
       const allDeps = [...CORE_DEPS, ...featureDeps];
       const allDevDeps = [...CORE_DEV_DEPS, ...featureDevDeps];
 
+      // Устанавливаем двумя вызовами: сначала runtime-зависимости, потом dev.
+      // Разделяем потому что у pm разные флаги для dev (--save-dev vs --dev),
+      // и потому что runtime важнее: если deps уйдут, devDeps в принципе нет
+      // смысла ставить. Оба шага явно помечены в логах — если откат случится
+      // на dev-шаге, пользователь поймёт что runtime уже был установлен.
       logger.info('\nInstalling dependencies:');
-      await packageManagerService.install(packageManager, targetDir, allDeps, false);
+      try {
+        await packageManagerService.install(packageManager, targetDir, allDeps, false);
+      } catch (installErr) {
+        logger.error('Failed during runtime dependency install — rolling back.');
+        throw installErr;
+      }
 
       logger.info('\nInstalling dev dependencies:');
-      await packageManagerService.install(packageManager, targetDir, allDevDeps, true);
+      try {
+        await packageManagerService.install(packageManager, targetDir, allDevDeps, true);
+      } catch (installErr) {
+        logger.error('Failed during dev dependency install — rolling back.');
+        throw installErr;
+      }
 
       logger.success('Dependencies installed');
     }

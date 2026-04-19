@@ -1,0 +1,7 @@
+import { z } from 'zod';
+
+export const {{pascal}}Schema = z.object({
+  // TODO: describe the shape
+});
+
+export type {{pascal}}Dto = z.infer<typeof {{pascal}}Schema>;

@@ -1,3 +1,4 @@
+import fs from 'fs/promises';
 import path from 'path';
 import { templateService } from '../services/template.service';
 import { resolveNames } from '../utils/naming';
@@ -14,8 +15,9 @@ import type { GenerateOptions } from '../schemas/generate-options.schema';
  * Если путь не указан (просто 'User'), файл создаётся в текущей директории.
  *
  * Безопасность: путь нормализуется и проверяется что он не выходит за пределы
- * projectRoot. Без этой проверки пользователь мог бы передать '../../etc/passwd'
- * и создать файл вне проекта.
+ * projectRoot. Проверка учитывает symlink'и — мы резолвим канонические пути
+ * через fs.realpath, иначе злоумышленник (или случайный промах) с symlink'ом
+ * внутри проекта мог бы создать файл за его пределами.
  */
 export async function generateTsConstruct(options: GenerateOptions): Promise<void> {
   const { name, projectRoot, type } = options;
@@ -35,23 +37,81 @@ export async function generateTsConstruct(options: GenerateOptions): Promise<voi
 
   const outputPath = path.resolve(outputDir, `${names.kebab}.${type}.ts`);
 
-  // Проверка границ проекта: нормализованный путь должен начинаться с projectRoot
-  // (либо с cwd когда пользователь не указал путь — в этом случае cwd обычно
-  // внутри проекта, но явно не запрещаем работу вне проекта если dir === '.').
-  // Проверяем только случай с явным путём, чтобы не мешать работе с относительными
-  // путями от cwd, но предотвратить '../../outside-project' диверсии.
-  if (dir !== '.' && !outputPath.startsWith(path.resolve(projectRoot) + path.sep)) {
-    throw new XpressifyError(
-      `Refusing to create file outside of project root: "${outputPath}". ` +
-        `The path "${name}" resolved outside of "${projectRoot}".`,
-    );
+  // Проверка границ проекта с учётом symlink'ов.
+  // Проверяем только случай с явным путём — генерация в cwd безопасна
+  // по определению (пользователь явно попросил именно туда).
+  if (dir !== '.') {
+    await assertWithinProject(outputPath, projectRoot, name);
   }
 
   const templatePath = `generate/${type}/${type}.ts.hbs`;
 
   await templateService.renderToFile(templatePath, outputPath, { ...names });
 
-  // Вычисляем красивый относительный путь для отображения пользователю
-  const displayPath = path.relative(projectRoot, outputPath).replace(/\\/g, '/');
+  // Красивый относительный путь для вывода — всегда с прямыми слэшами,
+  // чтобы пользователи на Windows не путались и чтобы тесты (e2e smoke)
+  // могли писать единые assert'ы.
+  const displayPath = toPosix(path.relative(projectRoot, outputPath));
   logger.success(`Created ${type}: ${displayPath}`);
+}
+
+/**
+ * Приводит путь к posix-виду (слэши только прямые).
+ * Используется для отображения пользователю и для сравнений, которые
+ * должны быть одинаковыми на разных ОС.
+ */
+function toPosix(p: string): string {
+  return p.split(path.sep).join('/');
+}
+
+/**
+ * Бросает XpressifyError если outputPath (после резолва symlink'ов) выходит
+ * за пределы projectRoot. Резолвит сначала родительскую директорию (файла
+ * ещё нет), затем сравнивает канонический родитель с каноническим projectRoot.
+ */
+async function assertWithinProject(
+  outputPath: string,
+  projectRoot: string,
+  originalName: string,
+): Promise<void> {
+  const realProjectRoot = await fs.realpath(projectRoot);
+
+  // Находим ближайший существующий предок outputPath. Файла может ещё не быть,
+  // и промежуточные директории могут отсутствовать — это штатная ситуация
+  // для генератора. Поэтому идём вверх пока realpath не перестанет падать.
+  let ancestor = path.dirname(outputPath);
+  let realAncestor: string | null = null;
+  while (true) {
+    try {
+      realAncestor = await fs.realpath(ancestor);
+      break;
+    } catch {
+      const parent = path.dirname(ancestor);
+      if (parent === ancestor) break;
+      ancestor = parent;
+    }
+  }
+
+  // Если вообще не смогли ничего зарезолвить (теоретически невозможно —
+  // корень файловой системы всегда существует), фолбэк на path.resolve.
+  const effectiveAncestor = realAncestor ?? path.resolve(ancestor);
+
+  // Собираем «виртуальный» канонический путь результата: берём
+  // зарезолвленного предка и приклеиваем остаток, который ещё не существует.
+  const remainder = path.relative(ancestor, outputPath);
+  const canonicalOutput = path.resolve(effectiveAncestor, remainder);
+
+  const rootWithSep = realProjectRoot.endsWith(path.sep)
+    ? realProjectRoot
+    : realProjectRoot + path.sep;
+
+  if (
+    canonicalOutput !== realProjectRoot &&
+    !canonicalOutput.startsWith(rootWithSep)
+  ) {
+    throw new XpressifyError(
+      `Refusing to create file outside of project root: "${toPosix(canonicalOutput)}". ` +
+        `The path "${originalName}" resolved outside of "${toPosix(realProjectRoot)}".`,
+    );
+  }
 }

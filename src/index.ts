@@ -10,8 +10,10 @@
  */
 
 // ─── Версия ───────────────────────────────────────────────────────────────────
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-export const VERSION: string = (require('../package.json') as { version: string }).version;
+// Читаем version из package.json через fs (см. utils/package-info.ts),
+// не через require(), чтобы API был чистым ESM.
+import { getPackageVersion } from './utils/package-info';
+export const VERSION: string = getPackageVersion();
 
 // ─── Типы схем ────────────────────────────────────────────────────────────────
 export type {
@@ -19,6 +21,7 @@ export type {
   PackageManager,
   Feature,
   LoggerLibrary,
+  TestingLibrary,
 } from './schemas/project-options.schema';
 
 export type {
@@ -32,6 +35,7 @@ export {
   PackageManagerSchema,
   FeatureSchema,
   LoggerLibrarySchema,
+  TestingLibrarySchema,
 } from './schemas/project-options.schema';
 
 export {

@@ -1,9 +1,14 @@
 import { input, select, checkbox, confirm } from '@inquirer/prompts';
 import { toKebabCase } from '../utils/naming';
+import {
+  applyFeatureDependencies,
+  getAutoAddedFeatures,
+} from '../utils/feature-dependencies';
 import type {
   PackageManager,
   Feature,
   LoggerLibrary,
+  TestingLibrary,
 } from '../schemas/project-options.schema';
 import {
   PROJECT_NAME_REGEX,
@@ -15,6 +20,7 @@ export interface ProjectPromptAnswers {
   packageManager: PackageManager;
   features: Feature[];
   loggerLibrary: LoggerLibrary | null;
+  testingLibrary: TestingLibrary | null;
   installDependencies: boolean;
 }
 
@@ -58,9 +64,11 @@ export async function askProjectQuestions(
   const projectFeatures = await checkbox<Feature>({
     message: 'Project features:',
     choices: [
-      { value: 'zod',    name: 'Zod     – schema validation library' },
-      { value: 'logger', name: 'Logger  – structured logging (pino or winston)' },
-      { value: 'jwt',    name: 'JWT     – jsonwebtoken + bcryptjs (deps only)' },
+      { value: 'zod',     name: 'Zod      – schema validation library' },
+      { value: 'logger',  name: 'Logger   – structured logging (pino or winston)' },
+      { value: 'jwt',     name: 'JWT      – jsonwebtoken + bcryptjs (deps only)' },
+      { value: 'docker',  name: 'Docker   – Dockerfile + .dockerignore + docker-compose.yml' },
+      { value: 'testing', name: 'Testing  – unit tests (vitest or jest)' },
     ],
   });
 
@@ -78,21 +86,30 @@ export async function askProjectQuestions(
     });
   }
 
-  // Объединяем обе группы и применяем feature dependencies
-  const allSelected: Feature[] = [...qualityFeatures, ...projectFeatures];
-  const featuresSet = new Set<Feature>(allSelected);
-
-  if (featuresSet.has('husky')) {
-    featuresSet.add('eslint');
-    featuresSet.add('prettier');
+  // Аналогично — выбор тест-фреймворка появляется только при выборе testing.
+  let testingLibrary: TestingLibrary | null = null;
+  if (projectFeatures.includes('testing')) {
+    testingLibrary = await select<TestingLibrary>({
+      message: 'Choose testing framework:',
+      choices: [
+        { value: 'vitest', name: 'Vitest  – fast, ESM-first (recommended)' },
+        { value: 'jest',   name: 'Jest    – classic, broad ecosystem' },
+      ],
+      default: 'vitest',
+    });
   }
 
-  const features = Array.from(featuresSet);
+  // Объединяем обе группы и применяем feature dependencies через общий хелпер.
+  // См. src/utils/feature-dependencies.ts — единственное место где живут
+  // правила "одна фича тянет другие". Non-interactive режим вызывает ту же
+  // функцию, гарантируя одинаковое поведение.
+  const allSelected: Feature[] = [...qualityFeatures, ...projectFeatures];
+  const features = applyFeatureDependencies(allSelected);
 
-  const autoAdded = features.filter((f) => !allSelected.includes(f));
+  const autoAdded = getAutoAddedFeatures(allSelected, features);
   if (autoAdded.length > 0) {
     console.log(
-      `\n  ℹ Husky requires: ${autoAdded.join(', ')} — added automatically.\n`,
+      `\n  ℹ Added automatically due to dependencies: ${autoAdded.join(', ')}.\n`,
     );
   }
 
@@ -101,5 +118,12 @@ export async function askProjectQuestions(
     default: true,
   });
 
-  return { name, packageManager, features, loggerLibrary, installDependencies };
+  return {
+    name,
+    packageManager,
+    features,
+    loggerLibrary,
+    testingLibrary,
+    installDependencies,
+  };
 }

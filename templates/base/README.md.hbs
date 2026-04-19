@@ -1,0 +1,43 @@
+# {{name}}
+
+Express + TypeScript + ESM backend scaffolded with [xpressify](https://www.npmjs.com/package/xpressify).
+
+## Requirements
+
+- Node.js >= 20
+
+## Setup
+
+```bash
+npm install
+cp .env.example .env
+```
+
+## Scripts
+
+```bash
+npm run dev     # start with auto-reload (tsx watch)
+npm run build   # compile to dist/
+npm start       # run the compiled build
+```
+
+## Project structure
+
+```
+src/
+├── app.ts          Express app (cors, helmet, rate-limit, /health)
+├── server.ts       entry point (dotenv + app.listen)
+├── routes/         request routing
+├── controllers/    request handlers
+├── services/       business logic
+├── middlewares/    custom Express middleware
+└── utils/          shared helpers
+```
+
+## Adding components
+
+```bash
+npx xpressify g route users        # router + controller + service
+npx xpressify g middleware auth    # typed middleware
+npx xpressify g class src/models/User
+```

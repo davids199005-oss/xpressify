@@ -9,13 +9,15 @@ import {
   NewProjectOptionsSchema,
   FeatureSchema,
   LoggerLibrarySchema,
+  TestingLibrarySchema,
   PackageManagerSchema,
-  type Feature,
   type LoggerLibrary,
+  type TestingLibrary,
 } from '../schemas/project-options.schema';
 import { toKebabCase } from '../utils/naming';
+import { applyFeatureDependencies } from '../utils/feature-dependencies';
 import { logger } from '../utils/logger';
-import { XpressifyError } from '../utils/errors';
+import { XpressifyError, isError } from '../utils/errors';
 
 /**
  * Опции CLI команды new.
@@ -28,6 +30,7 @@ interface NewCommandFlags {
   packageManager?: string;
   features?: string;
   logger?: string;
+  testingLibrary?: string;
   install: boolean; // commander превращает --no-install в install: false
 }
 
@@ -51,11 +54,15 @@ export function registerNewCommand(program: Command): void {
     )
     .option(
       '--features <list>',
-      'Comma-separated features: eslint,prettier,husky,github-actions,zod,logger,jwt',
+      'Comma-separated features: eslint,prettier,husky,github-actions,zod,logger,jwt,docker,testing',
     )
     .option(
       '--logger <library>',
       'Logger library when "logger" feature is selected: pino or winston (default: pino)',
+    )
+    .option(
+      '--testing-library <library>',
+      'Testing framework when "testing" feature is selected: vitest or jest (default: vitest)',
     )
     .option('--no-install', 'Skip dependency installation after scaffolding')
     .addHelpText('after', `
@@ -97,12 +104,15 @@ Examples:
         // Разделяем обработку наших ошибок и неожиданных системных ошибок.
         // XpressifyError — это ожидаемые ошибки (директория уже существует,
         // шаблон не найден и т.д.). Для них показываем только сообщение.
-        // Всё остальное — неожиданный баг, показываем стектрейс для диагностики.
+        // Для Error — стектрейс для диагностики. Для чего-то ещё (null,
+        // строка, объект без message) — приводим к строке через getErrorMessage.
         if (err instanceof XpressifyError) {
           logger.error(err.message);
-        } else if (err instanceof Error) {
+        } else if (isError(err)) {
           logger.error(`Unexpected error: ${err.message}`);
           console.error(err.stack);
+        } else {
+          logger.error(`Unexpected error: ${String(err)}`);
         }
 
         // Код выхода 1 сигнализирует оболочке что команда завершилась с ошибкой.
@@ -123,7 +133,8 @@ function isNonInteractiveMode(flags: NewCommandFlags): boolean {
     flags.yes ||
       flags.features !== undefined ||
       flags.packageManager !== undefined ||
-      flags.logger !== undefined,
+      flags.logger !== undefined ||
+      flags.testingLibrary !== undefined,
   );
 }
 
@@ -160,15 +171,11 @@ function buildNonInteractiveAnswers(
         .map((f) => FeatureSchema.parse(f))
     : [];
 
-  // Применяем feature dependencies — husky требует eslint + prettier.
-  // Дублируем логику из project.prompts.ts чтобы поведение было идентичным
-  // в обоих режимах.
-  const featuresSet = new Set<Feature>(features);
-  if (featuresSet.has('husky')) {
-    featuresSet.add('eslint');
-    featuresSet.add('prettier');
-  }
-  const finalFeatures = Array.from(featuresSet);
+  // Применяем feature dependencies через общий хелпер.
+  // Именно этот вызов гарантирует что интерактивный и non-interactive режимы
+  // дают одинаковые финальные списки фич — правила живут в одном месте
+  // (src/utils/feature-dependencies.ts).
+  const finalFeatures = applyFeatureDependencies(features);
 
   // Logger library имеет смысл только если выбрана фича 'logger'.
   // Если фича не выбрана — принудительно null, чтобы Zod-валидация прошла.
@@ -178,11 +185,19 @@ function buildNonInteractiveAnswers(
       : 'pino' // дефолт по умолчанию — как и в интерактивном режиме
     : null;
 
+  // Аналогично для testing — дефолт 'vitest' если фича выбрана, но флаг не задан.
+  const testingLibrary: TestingLibrary | null = finalFeatures.includes('testing')
+    ? flags.testingLibrary
+      ? TestingLibrarySchema.parse(flags.testingLibrary)
+      : 'vitest'
+    : null;
+
   return {
     name,
     packageManager,
     features: finalFeatures,
     loggerLibrary,
+    testingLibrary,
     installDependencies: flags.install,
   };
 }

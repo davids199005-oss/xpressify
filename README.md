@@ -115,6 +115,15 @@ xpressify new my-api --yes \
   --features logger,jwt \
   --logger winston
 
+# Testing framework (vitest or jest)
+xpressify new my-api --yes \
+  --features testing \
+  --testing-library jest
+
+# Docker-ready project
+xpressify new my-api --yes \
+  --features docker,eslint,prettier
+
 # Scaffold only, skip dependency install
 xpressify new my-api --yes --no-install
 ```
@@ -127,6 +136,7 @@ Flags for `new`:
 | `--package-manager <pm>` | `npm`, `pnpm`, or `yarn` | `npm` |
 | `--features <list>` | Comma-separated feature list (see below) | `` (none) |
 | `--logger <library>` | `pino` or `winston` (only with `logger` feature) | `pino` |
+| `--testing-library <library>` | `vitest` or `jest` (only with `testing` feature) | `vitest` |
 | `--no-install` | Skip dependency installation | install |
 
 ### What you can select
@@ -147,6 +157,8 @@ Flags for `new`:
 | `zod` | Runtime schema validation |
 | `logger` | Structured logging — choose `pino` or `winston` |
 | `jwt` | Adds `jsonwebtoken` + `bcryptjs` to deps |
+| `docker` | Adds multi-stage `Dockerfile`, `.dockerignore`, and `docker-compose.yml` |
+| `testing` | Adds a test framework — choose `vitest` or `jest` with sample test |
 
 ---
 
@@ -168,6 +180,16 @@ xpressify g middleware request-logger
 xpressify g class src/models/User
 xpressify g interface src/types/Product
 xpressify g enum src/enums/Status
+
+# DTO — Zod-aware if zod is in the target project, plain interface otherwise
+xpressify g dto src/dtos/CreateUser
+
+# Test — picks Vitest or Jest by inspecting the target's devDependencies
+xpressify g test users
+
+# Util — defaults to src/utils/ with a .util.ts suffix
+xpressify g util format-date
+xpressify g util src/modules/auth/token-helpers
 ```
 
 ### Generator types
@@ -179,6 +201,9 @@ xpressify g enum src/enums/Status
 | `class` | `<path>/<name>.class.ts` |
 | `interface` | `<path>/<name>.interface.ts` |
 | `enum` | `<path>/<name>.enum.ts` |
+| `dto` | `src/dtos/<name>.dto.ts` (or `<path>/<name>.dto.ts`) — uses Zod schema + `z.infer` when `zod` is present, otherwise emits a plain interface |
+| `test` | `src/__tests__/<name>.test.ts` (or `<path>/<name>.test.ts`) — Vitest or Jest template chosen by detecting the framework in `package.json`; fails with a hint if neither is installed |
+| `util` | `src/utils/<name>.util.ts` (or `<path>/<name>.util.ts`) |
 
 Generated files use ESM-compatible `.js` extensions in relative imports,
 matching the `NodeNext` module resolution used in the scaffolded `tsconfig.json`.
@@ -191,10 +216,16 @@ Xpressify also works as a library. Types, Zod schemas, naming utilities,
 and error classes are all exported from the main entry point:
 
 ```typescript
-import type { NewProjectOptions, Feature, GenerateOptions } from 'xpressify';
+import type {
+  NewProjectOptions,
+  Feature,
+  LoggerLibrary,
+  TestingLibrary,
+  GenerateOptions,
+} from 'xpressify';
 import {
   NewProjectOptionsSchema,
-  PROJECT_NAME_REGEX,
+  TestingLibrarySchema,
   resolveNames,
   XpressifyError,
 } from 'xpressify';
@@ -204,8 +235,9 @@ const options = NewProjectOptionsSchema.parse({
   name: 'my-api',
   targetDir: '/projects/my-api',
   packageManager: 'pnpm',
-  features: ['eslint', 'prettier', 'zod'],
+  features: ['eslint', 'prettier', 'zod', 'testing'],
   loggerLibrary: null,
+  testingLibrary: 'vitest',
   installDependencies: true,
 });
 
@@ -213,8 +245,8 @@ const options = NewProjectOptionsSchema.parse({
 const names = resolveNames('user-profile');
 // { kebab: 'user-profile', pascal: 'UserProfile', camel: 'userProfile', ... }
 
-// Validate a project name directly
-const isValid = PROJECT_NAME_REGEX.test('my-api'); // true
+// Parse a testing library value directly
+const lib = TestingLibrarySchema.parse('jest'); // 'jest'
 ```
 
 ---
@@ -226,7 +258,8 @@ Express with `cors`, `helmet`, and `express-rate-limit` pre-wired; a `/health`
 endpoint out of the box; **ESM output** via `"type": "module"` in `package.json`
 and `NodeNext` in `tsconfig.json`; TypeScript strict mode targeting `ES2022`;
 `tsx` + `nodemon` for a fast local dev loop with no build step; and `dotenv`
-for environment variables.
+for environment variables. A `README.md` and `.nvmrc` are scaffolded so
+the project is ready to open, run, and share without further setup.
 
 Relative imports in the scaffold use `.js` extensions (`import app from './app.js'`),
 which is what Node requires at runtime for ESM and what `tsc` preserves under
