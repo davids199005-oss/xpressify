@@ -31,7 +31,7 @@ export const DEP_VERSIONS = {
   bcryptjs: '^3.0.2',
 
   // loggers
-  pino: '^9.5.0',
+  pino: '^10.0.0',
   'pino-pretty': '^13.0.0',
   winston: '^3.17.0',
 
@@ -50,7 +50,7 @@ export const DEP_VERSIONS = {
 
   // linting & formatting
   eslint: '^10.2.0',
-  '@eslint/js': '^10.2.0',
+  '@eslint/js': '^10.0.0',
   '@typescript-eslint/parser': '^8.58.0',
   '@typescript-eslint/eslint-plugin': '^8.58.0',
   'eslint-config-prettier': '^10.1.0',
@@ -64,7 +64,7 @@ export const DEP_VERSIONS = {
   // testing
   vitest: '^4.1.0',
   jest: '^30.0.0',
-  'ts-jest': '^30.0.0',
+  'ts-jest': '^29.4.0',
 } as const;
 
 export type DependencyName = keyof typeof DEP_VERSIONS;

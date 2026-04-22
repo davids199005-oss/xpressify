@@ -5,6 +5,23 @@ All notable changes to Xpressify are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.1] — Unreleased
+
+### Fixed
+
+- **Install failure in 2.2.0**: three pinned versions in
+  `dependency-versions.ts` referenced npm releases that don't exist,
+  causing `npm install` to fail with `ETARGET` when scaffolding a
+  new project with optional features:
+  - `@eslint/js` pinned to `^10.2.0`, actual latest is `10.0.1`.
+    Corrected to `^10.0.0`. (Unlike `eslint` itself, `@eslint/js` is
+    published less frequently and their minor versions don't track.)
+  - `ts-jest` pinned to `^30.0.0`, which does not exist. Latest is
+    `29.4.9`. Corrected to `^29.4.0`.
+  - `pino` pinned to `^9.5.0` — still valid but outdated; latest is
+    `10.x`. Bumped to `^10.0.0` since the template only uses basic API
+    stable across both majors.
+
 ## [2.2.0] — Unreleased
 
 ### Fixed
