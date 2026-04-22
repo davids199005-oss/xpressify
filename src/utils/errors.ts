@@ -63,9 +63,7 @@ export class TemplateNotFoundError extends XpressifyError {
  */
 export class NotXpressifyProjectError extends XpressifyError {
   constructor() {
-    super(
-      'Not inside a Node.js project. Run "xpressify new <project-name>" to create one first.',
-    );
+    super('Not inside a Node.js project. Run "xpressify new <project-name>" to create one first.');
   }
 }
 

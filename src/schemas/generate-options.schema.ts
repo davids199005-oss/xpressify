@@ -1,7 +1,5 @@
 import { z } from 'zod';
 
-
-
 /**
  * Типы компонентов которые можно генерировать.
  * route — генерирует router + controller + service (три файла).
@@ -26,12 +24,12 @@ export const GenerateOptionsSchema = z.object({
   // генераторы используют resolveNames() для получения всех вариантов.
   // Например: "user-profile", "UserProfile", "userProfile" — всё принимается.
   name: z
-  .string()
-  .min(1, 'Component name cannot be empty')
-  .regex(
-    /^[a-zA-Z0-9/_-][a-zA-Z0-9/_.-]*$/,
-    'Name may include path segments, e.g. src/models/User',
-  ),
+    .string()
+    .min(1, 'Component name cannot be empty')
+    .regex(
+      /^[a-zA-Z0-9/_-][a-zA-Z0-9/_.-]*$/,
+      'Name may include path segments, e.g. src/models/User',
+    ),
 
   // Абсолютный путь к корню проекта — определяется автоматически
   // через project-detector.service, пользователь не вводит.

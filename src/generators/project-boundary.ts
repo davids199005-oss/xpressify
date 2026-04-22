@@ -52,10 +52,7 @@ export async function assertWithinProject(
     ? realProjectRoot
     : realProjectRoot + path.sep;
 
-  if (
-    canonicalOutput !== realProjectRoot &&
-    !canonicalOutput.startsWith(rootWithSep)
-  ) {
+  if (canonicalOutput !== realProjectRoot && !canonicalOutput.startsWith(rootWithSep)) {
     throw new XpressifyError(
       `Refusing to create file outside of project root: "${toPosix(canonicalOutput)}". ` +
         `The path "${originalName}" resolved outside of "${toPosix(realProjectRoot)}".`,

@@ -30,9 +30,7 @@ export async function generateTsConstruct(options: GenerateOptions): Promise<voi
 
   // Если пользователь указал путь — используем его относительно корня проекта.
   // Если нет (dir === '.') — создаём файл в текущей рабочей директории.
-  const outputDir = dir === '.'
-    ? process.cwd()
-    : path.resolve(projectRoot, dir);
+  const outputDir = dir === '.' ? process.cwd() : path.resolve(projectRoot, dir);
 
   const outputPath = path.resolve(outputDir, `${names.kebab}.${type}.ts`);
 

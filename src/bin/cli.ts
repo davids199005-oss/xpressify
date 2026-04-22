@@ -49,7 +49,8 @@ registerGenerateCommand(program);
 // Не показываем при --version и --help чтобы не засорять вывод
 // который может парситься скриптами.
 const args = process.argv.slice(2);
-const isSilentFlag = args.includes('--version') ||
+const isSilentFlag =
+  args.includes('--version') ||
   args.includes('-V') ||
   args.includes('--help') ||
   args.includes('-h');

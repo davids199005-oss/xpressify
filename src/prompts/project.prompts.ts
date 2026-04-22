@@ -1,19 +1,13 @@
 import { input, select, checkbox, confirm } from '@inquirer/prompts';
 import { toKebabCase } from '../utils/naming';
-import {
-  applyFeatureDependencies,
-  getAutoAddedFeatures,
-} from '../utils/feature-dependencies';
+import { applyFeatureDependencies, getAutoAddedFeatures } from '../utils/feature-dependencies';
 import type {
   PackageManager,
   Feature,
   LoggerLibrary,
   TestingLibrary,
 } from '../schemas/project-options.schema';
-import {
-  PROJECT_NAME_REGEX,
-  PROJECT_NAME_ERROR,
-} from '../schemas/project-options.schema';
+import { PROJECT_NAME_REGEX, PROJECT_NAME_ERROR } from '../schemas/project-options.schema';
 
 export interface ProjectPromptAnswers {
   name: string;
@@ -42,7 +36,7 @@ export async function askProjectQuestions(
   const packageManager = await select<PackageManager>({
     message: 'Package manager:',
     choices: [
-      { value: 'npm',  name: 'npm  (Node.js default)' },
+      { value: 'npm', name: 'npm  (Node.js default)' },
       { value: 'pnpm', name: 'pnpm (fast, disk-efficient)' },
       { value: 'yarn', name: 'yarn (classic)' },
     ],
@@ -53,9 +47,9 @@ export async function askProjectQuestions(
   const qualityFeatures = await checkbox<Feature>({
     message: 'Code quality tools:',
     choices: [
-      { value: 'eslint',         name: 'ESLint          – static analysis' },
-      { value: 'prettier',       name: 'Prettier        – code formatting' },
-      { value: 'husky',          name: 'Husky           – git hooks (auto-adds ESLint + Prettier)' },
+      { value: 'eslint', name: 'ESLint          – static analysis' },
+      { value: 'prettier', name: 'Prettier        – code formatting' },
+      { value: 'husky', name: 'Husky           – git hooks (auto-adds ESLint + Prettier)' },
       { value: 'github-actions', name: 'GitHub Actions  – CI/CD pipeline' },
     ],
   });
@@ -64,10 +58,10 @@ export async function askProjectQuestions(
   const projectFeatures = await checkbox<Feature>({
     message: 'Project features:',
     choices: [
-      { value: 'zod',     name: 'Zod      – schema validation library' },
-      { value: 'logger',  name: 'Logger   – structured logging (pino or winston)' },
-      { value: 'jwt',     name: 'JWT      – jsonwebtoken + bcryptjs (deps only)' },
-      { value: 'docker',  name: 'Docker   – Dockerfile + .dockerignore + docker-compose.yml' },
+      { value: 'zod', name: 'Zod      – schema validation library' },
+      { value: 'logger', name: 'Logger   – structured logging (pino or winston)' },
+      { value: 'jwt', name: 'JWT      – jsonwebtoken + bcryptjs (deps only)' },
+      { value: 'docker', name: 'Docker   – Dockerfile + .dockerignore + docker-compose.yml' },
       { value: 'testing', name: 'Testing  – unit tests (vitest or jest)' },
     ],
   });
@@ -79,7 +73,7 @@ export async function askProjectQuestions(
     loggerLibrary = await select<LoggerLibrary>({
       message: 'Choose logger library:',
       choices: [
-        { value: 'pino',    name: 'Pino    – fast, JSON structured (recommended)' },
+        { value: 'pino', name: 'Pino    – fast, JSON structured (recommended)' },
         { value: 'winston', name: 'Winston – flexible, multiple transports' },
       ],
       default: 'pino',
@@ -93,7 +87,7 @@ export async function askProjectQuestions(
       message: 'Choose testing framework:',
       choices: [
         { value: 'vitest', name: 'Vitest  – fast, ESM-first (recommended)' },
-        { value: 'jest',   name: 'Jest    – classic, broad ecosystem' },
+        { value: 'jest', name: 'Jest    – classic, broad ecosystem' },
       ],
       default: 'vitest',
     });
@@ -108,9 +102,7 @@ export async function askProjectQuestions(
 
   const autoAdded = getAutoAddedFeatures(allSelected, features);
   if (autoAdded.length > 0) {
-    console.log(
-      `\n  ℹ Added automatically due to dependencies: ${autoAdded.join(', ')}.\n`,
-    );
+    console.log(`\n  ℹ Added automatically due to dependencies: ${autoAdded.join(', ')}.\n`);
   }
 
   const installDependencies = await confirm({

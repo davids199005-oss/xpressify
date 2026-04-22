@@ -1,26 +1,44 @@
 # syntax=docker/dockerfile:1
-# Multi-stage build — финальный образ содержит только production-зависимости
-# и скомпилированный dist/, без dev-инструментов (tsx, typescript, eslint).
+# Multi-stage build — final image contains only production dependencies and
+# the compiled dist/, without dev tooling (tsx, typescript, eslint).
 
-FROM node:20-alpine AS deps
+# ─── deps: install all deps (dev + prod) for the build step ────────────────
+FROM node:22-alpine AS deps
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci --include=dev
 
-FROM node:20-alpine AS build
+# ─── build: compile TypeScript ─────────────────────────────────────────────
+FROM node:22-alpine AS build
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npm run build
 
-FROM node:20-alpine AS runtime
+# ─── runtime: minimal production image ─────────────────────────────────────
+FROM node:22-alpine AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
+
+# tini as PID 1 — forwards SIGTERM to Node and reaps zombie processes.
+# Node.js isn't designed to run as PID 1: by default it ignores SIGTERM,
+# which means `docker stop` times out after 10 seconds and force-kills the
+# container, dropping any in-flight requests.
+RUN apk add --no-cache tini
+
 COPY package*.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 COPY --from=build /app/dist ./dist
 
-# Не запускаем контейнер от root'а — стандартная практика для Node-образов.
+# Run as an unprivileged user — stock non-root `node` user is provided by
+# the official image, so no need to create one manually.
 USER node
 EXPOSE 3000
+
+# Uses the built-in Node runtime instead of adding curl/wget to the image,
+# keeps the image smaller and the healthcheck dependency-free.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD node -e "fetch('http://localhost:3000/health').then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))"
+
+ENTRYPOINT ["/sbin/tini", "--"]
 CMD ["node", "dist/server.js"]

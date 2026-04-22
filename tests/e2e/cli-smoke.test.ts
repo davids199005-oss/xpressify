@@ -79,7 +79,7 @@ describe('CLI smoke tests', () => {
 
     it('generates .nvmrc pinning Node version', async () => {
       const nvmrc = await readFile(path.join(projectDir, '.nvmrc'), 'utf-8');
-      expect(nvmrc.trim()).toBe('20');
+      expect(nvmrc.trim()).toBe('22');
     });
   });
 
@@ -281,7 +281,7 @@ describe('CLI smoke tests — optional features', () => {
     await access(path.join(projectDir, 'docker-compose.yml'));
 
     const dockerfile = await readFile(path.join(projectDir, 'Dockerfile'), 'utf-8');
-    expect(dockerfile).toContain('FROM node:20-alpine');
+    expect(dockerfile).toContain('FROM node:22-alpine');
   }, 30000);
 
   it('testing feature scaffolds vitest config and sample test', async () => {

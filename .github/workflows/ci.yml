@@ -13,10 +13,10 @@ jobs:
 
     strategy:
       matrix:
-        # Проверяем на обеих LTS-версиях Node — это называется matrix build.
-        # Если твой код работает на 20, но ломается на 22 из-за API-различий,
-        # CI поймает это автоматически.
-        node-version: [20, 22]
+        # Matrix build across supported LTS versions. If code works on 22
+        # but breaks on 24 (or vice-versa), CI catches it automatically.
+        # Node 20 is EOL as of 2026-04-30 and no longer in the matrix.
+        node-version: [22, 24]
 
     steps:
       - name: Checkout code

@@ -6,6 +6,7 @@ import type {
   TestingLibrary,
 } from '../schemas/project-options.schema';
 import { XpressifyError } from '../utils/errors';
+import { formatDep } from '../utils/dependency-versions';
 
 /**
  * Таймаут на одну команду установки — 10 минут.
@@ -171,7 +172,7 @@ export function resolveDependencies(
  * Используем Record чтобы TypeScript гарантировал покрытие всех трёх вариантов.
  */
 const INSTALL_COMMANDS: Record<PackageManager, { bin: string; subcommand: string }> = {
-  npm:  { bin: 'npm',  subcommand: 'install' },
+  npm: { bin: 'npm', subcommand: 'install' },
   pnpm: { bin: 'pnpm', subcommand: 'add' },
   yarn: { bin: 'yarn', subcommand: 'add' },
 };
@@ -194,12 +195,17 @@ export const packageManagerService = {
 
     const { bin, subcommand } = INSTALL_COMMANDS[packageManager];
 
+    // Применяем semver-constraints из DEP_VERSIONS, чтобы пользователь получил
+    // воспроизводимый результат независимо от того, когда запустил xpressify.
+    // См. src/utils/dependency-versions.ts для обоснования pinning'а.
+    const pinnedDeps = deps.map(formatDep);
+
     // npm и pnpm используют --save-dev, yarn использует --dev
     const devFlag = packageManager === 'yarn' ? '--dev' : '--save-dev';
     const flags = isDev ? [devFlag] : [];
 
     try {
-      await execa(bin, [subcommand, ...flags, ...deps], {
+      await execa(bin, [subcommand, ...flags, ...pinnedDeps], {
         cwd: targetDir,
         // stdio: 'inherit' — вывод команды идёт напрямую в терминал пользователя.
         // Альтернатива 'pipe' — мы перехватываем вывод, но тогда пользователь

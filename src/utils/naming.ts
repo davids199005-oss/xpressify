@@ -17,15 +17,17 @@ import pluralizeLib from 'pluralize';
  *   "my app"      → ["my", "app"]
  */
 function toWords(input: string): string[] {
-  return input
-    // Разбиваем camelCase и PascalCase: вставляем пробел перед заглавными буквами
-    .replace(/([a-z])([A-Z])/g, '$1 $2')
-    // Заменяем все разделители (-, _, пробел) на пробел
-    .replace(/[-_\s]+/g, ' ')
-    .trim()
-    .toLowerCase()
-    .split(' ')
-    .filter(Boolean); // убираем пустые строки на случай двойных разделителей
+  return (
+    input
+      // Разбиваем camelCase и PascalCase: вставляем пробел перед заглавными буквами
+      .replace(/([a-z])([A-Z])/g, '$1 $2')
+      // Заменяем все разделители (-, _, пробел) на пробел
+      .replace(/[-_\s]+/g, ' ')
+      .trim()
+      .toLowerCase()
+      .split(' ')
+      .filter(Boolean)
+  ); // убираем пустые строки на случай двойных разделителей
 }
 
 /** "my-app" → "my-app" | "MyApp" → "my-app" */
@@ -37,9 +39,7 @@ export function toKebabCase(input: string): string {
 export function toCamelCase(input: string): string {
   const words = toWords(input);
   return words
-    .map((word, index) =>
-      index === 0 ? word : word.charAt(0).toUpperCase() + word.slice(1),
-    )
+    .map((word, index) => (index === 0 ? word : word.charAt(0).toUpperCase() + word.slice(1)))
     .join('');
 }
 

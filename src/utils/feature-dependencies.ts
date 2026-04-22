@@ -42,10 +42,7 @@ export function applyFeatureDependencies(features: Feature[]): Feature[] {
  * из-за зависимостей (есть в финальном списке, но не были выбраны пользователем).
  * Используется в интерактивном режиме чтобы показать "ℹ Husky requires: ...".
  */
-export function getAutoAddedFeatures(
-  userSelected: Feature[],
-  finalFeatures: Feature[],
-): Feature[] {
+export function getAutoAddedFeatures(userSelected: Feature[], finalFeatures: Feature[]): Feature[] {
   const selectedSet = new Set(userSelected);
   return finalFeatures.filter((f) => !selectedSet.has(f));
 }

@@ -1,8 +1,46 @@
 import 'dotenv/config';
 import app from './app.js';
 
-const PORT = process.env.PORT ?? 3000;
+const PORT = Number(process.env['PORT']) || 3000;
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+const server = app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
 });
+
+// Fail fast on startup errors — usually EADDRINUSE (port occupied) or EACCES.
+server.on('error', (err) => {
+  console.error('Server failed to start:', err);
+  process.exit(1);
+});
+
+// ─── Graceful shutdown ─────────────────────────────────────────────────────
+// Orchestrators (k8s, Docker, PM2, systemd) send SIGTERM when stopping a
+// container/process. Without this handler, Node.js exits immediately and
+// any in-flight requests return connection-reset errors to clients.
+//
+// The flow: stop accepting new connections → let in-flight requests finish →
+// exit cleanly. If anything is still hanging after SHUTDOWN_TIMEOUT_MS we
+// force-kill to avoid being killed by SIGKILL without visibility.
+const SHUTDOWN_TIMEOUT_MS = 10_000;
+
+const shutdown = (signal: string): void => {
+  console.log(`${signal} received, shutting down gracefully…`);
+
+  server.close((err) => {
+    if (err) {
+      console.error('Error during server.close():', err);
+      process.exit(1);
+    }
+    process.exit(0);
+  });
+
+  // .unref() lets the event loop exit naturally when server.close completes
+  // first — the timer won't keep the process alive on its own.
+  setTimeout(() => {
+    console.error(`Graceful shutdown timed out after ${SHUTDOWN_TIMEOUT_MS}ms — forcing exit.`);
+    process.exit(1);
+  }, SHUTDOWN_TIMEOUT_MS).unref();
+};
+
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));

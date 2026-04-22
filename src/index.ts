@@ -24,10 +24,7 @@ export type {
   TestingLibrary,
 } from './schemas/project-options.schema';
 
-export type {
-  GenerateOptions,
-  GenerateType,
-} from './schemas/generate-options.schema';
+export type { GenerateOptions, GenerateType } from './schemas/generate-options.schema';
 
 // ─── Zod-схемы (для программной валидации) ────────────────────────────────────
 export {
@@ -38,10 +35,7 @@ export {
   TestingLibrarySchema,
 } from './schemas/project-options.schema';
 
-export {
-  GenerateOptionsSchema,
-  GenerateTypeSchema,
-} from './schemas/generate-options.schema';
+export { GenerateOptionsSchema, GenerateTypeSchema } from './schemas/generate-options.schema';
 
 // ─── Утилиты именования ───────────────────────────────────────────────────────
 export {

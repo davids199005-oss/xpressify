@@ -5,6 +5,62 @@ All notable changes to Xpressify are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.0] — Unreleased
+
+### Fixed
+
+- **Security**: generated `app.ts` called `cors()` without options, which
+  allows any origin to make credentialed requests. The template now
+  reads allowed origins from a `CORS_ORIGIN` env var (comma-separated)
+  and disables CORS entirely when the variable is absent — a safe
+  default for APIs not called from a browser.
+- **Rate-limit API**: generated `app.ts` used the deprecated `max`
+  option from `express-rate-limit` v6. The template now uses `limit`,
+  `standardHeaders: 'draft-8'`, `legacyHeaders: false`, and `ipv6Subnet`
+  per the v8 API.
+- **Graceful shutdown**: generated `server.ts` now handles `SIGTERM` and
+  `SIGINT` by draining in-flight requests through `server.close()` with
+  a 10-second timeout before force-exiting. Without this, orchestrators
+  (k8s, Docker, PM2, systemd) dropped in-flight requests on restart.
+- **Startup errors**: generated `server.ts` now listens for the
+  `server.on('error')` event and exits with a clear message on
+  `EADDRINUSE` / `EACCES` instead of dumping a stack trace.
+- **Docker signal handling**: generated `Dockerfile` now uses `tini` as
+  PID 1 (`ENTRYPOINT ["/sbin/tini", "--"]`) so SIGTERM is forwarded to
+  the Node.js process. Without it, `docker stop` always timed out after
+  10 seconds before force-killing the container.
+- **Dependency pinning**: the CLI previously installed `express`,
+  `helmet`, `cors`, `express-rate-limit`, and every other dependency
+  as "latest" at install time. When a breaking major release of any
+  of these shipped, every newly scaffolded project broke the same day.
+  All versions are now pinned via semver ranges in
+  `src/utils/dependency-versions.ts`, a single source of truth.
+
+### Added
+
+- `app.ts` template now includes a 404 handler and a 4-argument error
+  handler. Body parsers are configured with a 100 KB limit to prevent
+  trivial payload-based DoS.
+- `app.ts` template explicitly disables the `X-Powered-By` header and
+  includes a commented-out `app.set('trust proxy', 1)` with guidance
+  on when and how to enable it for deploys behind Nginx / Cloudflare
+  / Railway / Fly.
+- `env.example` template now lists `CORS_ORIGIN` with a usage comment.
+- `Dockerfile` template now includes a `HEALTHCHECK` that uses the
+  built-in `fetch` (Node 22+) against `/health` — no `curl` or `wget`
+  in the image, no extra dependency.
+
+### Changed
+
+- **BREAKING**: generated projects require Node.js `>= 22.0.0`.
+  Previous minimum was `>= 20.0.0`. Node 20 reached end-of-life on
+  2026-04-30 and no longer receives security patches.
+- **BREAKING**: the CLI itself now requires Node.js `>= 22.0.0`.
+- Dockerfile base image upgraded from `node:20-alpine` to
+  `node:22-alpine`.
+- `.nvmrc` template bumped from `20` to `22`.
+- CI matrix now runs on Node 22 and 24 (was 20 and 22).
+
 ## [2.0.0] — Unreleased
 
 ### BREAKING CHANGES

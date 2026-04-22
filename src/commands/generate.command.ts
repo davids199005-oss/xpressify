@@ -15,7 +15,9 @@ export function registerGenerateCommand(program: Command): void {
     .command('generate <type> <component-name>')
     .alias('g')
     .description('Generate a component inside an existing project')
-    .addHelpText('after', `
+    .addHelpText(
+      'after',
+      `
 Examples:
   $ xpressify generate route users
   $ xpressify g route user-profile
@@ -28,12 +30,11 @@ Examples:
   $ xpressify g util format-date
   $ x g route users
   $ x g middleware auth
-  `)
+  `,
+    )
     .action(async (type: string, componentName: string) => {
       try {
-        const projectRoot = await projectDetectorService.requireProjectRoot(
-          process.cwd(),
-        );
+        const projectRoot = await projectDetectorService.requireProjectRoot(process.cwd());
 
         const options = GenerateOptionsSchema.parse({
           type,

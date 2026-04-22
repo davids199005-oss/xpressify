@@ -27,9 +27,8 @@ export async function generateDto(options: GenerateOptions): Promise<void> {
   const baseName = path.basename(name);
   const names = resolveNames(baseName);
 
-  const outputDir = dir === '.'
-    ? path.join(projectRoot, 'src', 'dtos')
-    : path.resolve(projectRoot, dir);
+  const outputDir =
+    dir === '.' ? path.join(projectRoot, 'src', 'dtos') : path.resolve(projectRoot, dir);
 
   const outputPath = path.resolve(outputDir, `${names.kebab}.dto.ts`);
 
@@ -38,9 +37,7 @@ export async function generateDto(options: GenerateOptions): Promise<void> {
   }
 
   const hasZod = await projectHasZod(projectRoot);
-  const templatePath = hasZod
-    ? 'generate/dto/dto.zod.ts.hbs'
-    : 'generate/dto/dto.plain.ts.hbs';
+  const templatePath = hasZod ? 'generate/dto/dto.zod.ts.hbs' : 'generate/dto/dto.plain.ts.hbs';
 
   await templateService.renderToFile(templatePath, outputPath, { ...names });
 

@@ -58,10 +58,7 @@ export const templateService = {
    *                       например: 'logger/pino.config.ts.hbs'
    * @param context      - данные для подстановки в шаблон
    */
-  render: async (
-    templatePath: string,
-    context: Record<string, unknown>,
-  ): Promise<string> => {
+  render: async (templatePath: string, context: Record<string, unknown>): Promise<string> => {
     const fullPath = path.join(TEMPLATES_DIR, templatePath);
 
     // Проверяем что шаблон существует — если нет, бросаем типизированную ошибку

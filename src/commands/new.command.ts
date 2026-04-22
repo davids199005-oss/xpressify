@@ -1,9 +1,6 @@
 import path from 'path';
 import type { Command } from 'commander';
-import {
-  askProjectQuestions,
-  type ProjectPromptAnswers,
-} from '../prompts/project.prompts';
+import { askProjectQuestions, type ProjectPromptAnswers } from '../prompts/project.prompts';
 import { generateProject } from '../generators/project.generator';
 import {
   NewProjectOptionsSchema,
@@ -48,10 +45,7 @@ export function registerNewCommand(program: Command): void {
     .command('new [name]')
     .description('Scaffold a new Express + TypeScript project')
     .option('-y, --yes', 'Skip all prompts and use defaults (name must be passed as argument)')
-    .option(
-      '--package-manager <pm>',
-      'Package manager: npm, pnpm, or yarn (default: npm)',
-    )
+    .option('--package-manager <pm>', 'Package manager: npm, pnpm, or yarn (default: npm)')
     .option(
       '--features <list>',
       'Comma-separated features: eslint,prettier,husky,github-actions,zod,logger,jwt,docker,testing',
@@ -65,7 +59,9 @@ export function registerNewCommand(program: Command): void {
       'Testing framework when "testing" feature is selected: vitest or jest (default: vitest)',
     )
     .option('--no-install', 'Skip dependency installation after scaffolding')
-    .addHelpText('after', `
+    .addHelpText(
+      'after',
+      `
 Examples:
   Interactive mode:
     $ x new my-app
@@ -76,7 +72,8 @@ Examples:
     $ xpressify new my-app --yes --features eslint,prettier,zod
     $ xpressify new my-app --yes --features logger --logger winston
     $ xpressify new my-app --yes --package-manager pnpm --no-install
-  `)
+  `,
+    )
     .action(async (nameArg: string | undefined, flags: NewCommandFlags) => {
       try {
         const isNonInteractive = isNonInteractiveMode(flags);
@@ -131,10 +128,10 @@ Examples:
 function isNonInteractiveMode(flags: NewCommandFlags): boolean {
   return Boolean(
     flags.yes ||
-      flags.features !== undefined ||
-      flags.packageManager !== undefined ||
-      flags.logger !== undefined ||
-      flags.testingLibrary !== undefined,
+    flags.features !== undefined ||
+    flags.packageManager !== undefined ||
+    flags.logger !== undefined ||
+    flags.testingLibrary !== undefined,
   );
 }
 

@@ -28,9 +28,8 @@ export async function generateTest(options: GenerateOptions): Promise<void> {
 
   const framework = await detectTestFramework(projectRoot);
 
-  const outputDir = dir === '.'
-    ? path.join(projectRoot, 'src', '__tests__')
-    : path.resolve(projectRoot, dir);
+  const outputDir =
+    dir === '.' ? path.join(projectRoot, 'src', '__tests__') : path.resolve(projectRoot, dir);
 
   const outputPath = path.resolve(outputDir, `${names.kebab}.test.ts`);
   if (dir !== '.') {

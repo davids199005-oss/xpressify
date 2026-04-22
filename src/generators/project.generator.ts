@@ -5,13 +5,7 @@ import { templateService } from '../services/template.service';
 import { packageManagerService, resolveDependencies } from '../services/package-manager.service';
 import type { NewProjectOptions } from '../schemas/project-options.schema';
 
-const CORE_DEPS = [
-  'express',
-  'dotenv',
-  'cors',
-  'helmet',
-  'express-rate-limit',
-];
+const CORE_DEPS = ['express', 'dotenv', 'cors', 'helmet', 'express-rate-limit'];
 
 const CORE_DEV_DEPS = [
   '@types/express',
@@ -27,23 +21,17 @@ const CORE_DEV_DEPS = [
 // если нужно добавить ещё один базовый файл (например, README.md),
 // достаточно добавить строку сюда и создать .hbs-шаблон.
 const BASE_FILES: ReadonlyArray<{ template: string; output: string }> = [
-  { template: 'base/package.json.hbs',  output: 'package.json' },
+  { template: 'base/package.json.hbs', output: 'package.json' },
   { template: 'base/tsconfig.json.hbs', output: 'tsconfig.json' },
-  { template: 'base/env.example.hbs',   output: '.env.example' },
-  { template: 'base/gitignore.hbs',     output: '.gitignore' },
-  { template: 'base/README.md.hbs',     output: 'README.md' },
-  { template: 'base/nvmrc.hbs',         output: '.nvmrc' },
-  { template: 'base/server.ts.hbs',     output: 'src/server.ts' },
-  { template: 'base/app.ts.hbs',        output: 'src/app.ts' },
+  { template: 'base/env.example.hbs', output: '.env.example' },
+  { template: 'base/gitignore.hbs', output: '.gitignore' },
+  { template: 'base/README.md.hbs', output: 'README.md' },
+  { template: 'base/nvmrc.hbs', output: '.nvmrc' },
+  { template: 'base/server.ts.hbs', output: 'src/server.ts' },
+  { template: 'base/app.ts.hbs', output: 'src/app.ts' },
 ];
 
-const SRC_DIRS = [
-  'src/routes',
-  'src/controllers',
-  'src/services',
-  'src/middlewares',
-  'src/utils',
-];
+const SRC_DIRS = ['src/routes', 'src/controllers', 'src/services', 'src/middlewares', 'src/utils'];
 
 export async function generateProject(options: NewProjectOptions): Promise<void> {
   const {
@@ -104,10 +92,7 @@ export async function generateProject(options: NewProjectOptions): Promise<void>
       const testingSpinner = logger.spinner(`Adding ${testingLibrary} config and sample test...`);
       await templateService.renderToFile(
         `testing/${testingLibrary}/config.hbs`,
-        path.join(
-          targetDir,
-          testingLibrary === 'vitest' ? 'vitest.config.ts' : 'jest.config.ts',
-        ),
+        path.join(targetDir, testingLibrary === 'vitest' ? 'vitest.config.ts' : 'jest.config.ts'),
         {},
       );
       await templateService.renderToFile(
@@ -179,10 +164,7 @@ export async function generateProject(options: NewProjectOptions): Promise<void>
   }
 }
 
-async function scaffoldBaseFiles(
-  targetDir: string,
-  options: NewProjectOptions,
-): Promise<void> {
+async function scaffoldBaseFiles(targetDir: string, options: NewProjectOptions): Promise<void> {
   // Контекст для Handlebars — на данный момент нужно только имя проекта
   // в package.json. Если в будущем шаблоны будут использовать больше
   // данных (описание, автор), добавятся сюда.
@@ -202,10 +184,7 @@ async function scaffoldBaseFiles(
   // "эта папка должна существовать в репозитории". Когда пользователь
   // добавит первый реальный файл, .gitkeep можно удалить.
   for (const dir of SRC_DIRS) {
-    await filesystemService.writeFile(
-      path.join(targetDir, dir, '.gitkeep'),
-      '',
-    );
+    await filesystemService.writeFile(path.join(targetDir, dir, '.gitkeep'), '');
   }
 }
 

@@ -23,9 +23,8 @@ export async function generateUtil(options: GenerateOptions): Promise<void> {
   const baseName = path.basename(name);
   const names = resolveNames(baseName);
 
-  const outputDir = dir === '.'
-    ? path.join(projectRoot, 'src', 'utils')
-    : path.resolve(projectRoot, dir);
+  const outputDir =
+    dir === '.' ? path.join(projectRoot, 'src', 'utils') : path.resolve(projectRoot, dir);
 
   const outputPath = path.resolve(outputDir, `${names.kebab}.util.ts`);
 
@@ -33,11 +32,7 @@ export async function generateUtil(options: GenerateOptions): Promise<void> {
     await assertWithinProject(outputPath, projectRoot, name);
   }
 
-  await templateService.renderToFile(
-    'generate/util/util.ts.hbs',
-    outputPath,
-    { ...names },
-  );
+  await templateService.renderToFile('generate/util/util.ts.hbs', outputPath, { ...names });
 
   const displayPath = toPosix(path.relative(projectRoot, outputPath));
   logger.success(`Created util: ${displayPath}`);

@@ -15,7 +15,7 @@
 
 [![npm version](https://img.shields.io/npm/v/xpressify?style=flat-square&color=cc3534&logo=npm&logoColor=white)](https://www.npmjs.com/package/xpressify)
 [![npm downloads](https://img.shields.io/npm/dm/xpressify?style=flat-square&color=cc3534)](https://www.npmjs.com/package/xpressify)
-[![Node](https://img.shields.io/badge/node-%3E%3D20-brightgreen?style=flat-square)](https://nodejs.org)
+[![Node](https://img.shields.io/badge/node-%3E%3D22-brightgreen?style=flat-square)](https://nodejs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-6-3178c6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
 [![License](https://img.shields.io/badge/license-MIT-6e40c9?style=flat-square)](./LICENSE)
 
@@ -148,7 +148,7 @@ Flags for `new`:
 | `eslint` | Static analysis with TypeScript rules |
 | `prettier` | Opinionated code formatting |
 | `husky` | Git hooks — auto-adds ESLint + Prettier |
-| `github-actions` | CI pipeline for Node 20 / 22 |
+| `github-actions` | CI pipeline for Node 22 / 24 |
 
 **Project features**
 
@@ -269,7 +269,7 @@ which is what Node requires at runtime for ESM and what `tsc` preserves under
 
 ## Requirements
 
-Node.js `>= 20.0.0`
+Node.js `>= 22.0.0` (Node 20 reached end-of-life on 2026-04-30).
 
 ```bash
 node --version
