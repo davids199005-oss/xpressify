@@ -5,7 +5,28 @@ All notable changes to Xpressify are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.2.1] — Unreleased
+## [2.2.2] — Unreleased
+
+### Changed
+
+- **BREAKING (generate)**: `g class`, `g interface`, `g enum` without an
+  explicit path now scaffold into typed subdirectories under the project
+  root (`src/classes/`, `src/interfaces/`, `src/enums/`) instead of the
+  current working directory. Explicit paths (`g class src/models/User`)
+  are unchanged. The result no longer depends on where inside the project
+  the command was invoked — running from `src/services/` lands the file in
+  the same place as running from the project root.
+
+### Fixed
+
+- **Clean error output**: invalid user input (bad project name, unknown
+  `--package-manager`, illegal characters in component name) now produces
+  a single readable message. The CLI no longer prints the `Unexpected
+  error:` prefix or a raw stack trace for user-input errors. Stack traces
+  are still available for debugging by setting `XPRESSIFY_DEBUG=1` in the
+  environment.
+
+## [2.2.1]
 
 ### Fixed
 

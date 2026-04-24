@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { execa } from 'execa';
 import { tmpdir } from 'os';
-import { mkdtemp, rm, readFile, writeFile, access } from 'fs/promises';
+import { mkdtemp, mkdir, rm, readFile, writeFile, access } from 'fs/promises';
 import path from 'path';
 
 
@@ -112,13 +112,13 @@ describe('CLI smoke tests', () => {
   });
 
   describe('g enum — non-empty template', () => {
-    it('generates a file with export enum declaration', async () => {
+    it('generates a file with export enum declaration in src/enums/', async () => {
       await execa('node', [CLI_PATH, 'g', 'enum', 'Status'], {
         cwd: projectDir,
       });
 
       const enumFile = await readFile(
-        path.join(projectDir, 'status.enum.ts'),
+        path.join(projectDir, 'src', 'enums', 'status.enum.ts'),
         'utf-8',
       );
       // Раньше: пустой файл. Теперь: полноценный enum.
@@ -150,6 +150,17 @@ describe('CLI smoke tests', () => {
       expect(file).toContain('export class User');
     });
 
+    it('class without path defaults to src/classes/', async () => {
+      await execa('node', [CLI_PATH, 'g', 'class', 'Widget'], {
+        cwd: projectDir,
+      });
+      const file = await readFile(
+        path.join(projectDir, 'src', 'classes', 'widget.class.ts'),
+        'utf-8',
+      );
+      expect(file).toContain('export class Widget');
+    });
+
     it('interface respects explicit path argument', async () => {
       await execa('node', [CLI_PATH, 'g', 'interface', 'src/types/Product'], {
         cwd: projectDir,
@@ -159,6 +170,32 @@ describe('CLI smoke tests', () => {
         'utf-8',
       );
       expect(file).toContain('Product');
+    });
+
+    it('interface without path defaults to src/interfaces/', async () => {
+      await execa('node', [CLI_PATH, 'g', 'interface', 'Payload'], {
+        cwd: projectDir,
+      });
+      const file = await readFile(
+        path.join(projectDir, 'src', 'interfaces', 'payload.interface.ts'),
+        'utf-8',
+      );
+      expect(file).toContain('Payload');
+    });
+
+    it('class created from a subdirectory still lands in projectRoot/src/classes/', async () => {
+      // Запуск из src/services/ должен дать тот же результат что запуск из корня.
+      // Это ключевое свойство: результат зависит только от projectRoot, не от cwd.
+      const subDir = path.join(projectDir, 'src', 'services');
+      await mkdir(subDir, { recursive: true });
+
+      await execa('node', [CLI_PATH, 'g', 'class', 'Gadget'], {
+        cwd: subDir,
+      });
+
+      // Файл в дефолтной папке, а не в cwd (src/services/).
+      await access(path.join(projectDir, 'src', 'classes', 'gadget.class.ts'));
+      await expect(access(path.join(subDir, 'gadget.class.ts'))).rejects.toThrow();
     });
 
     it('util defaults to src/utils/ with .util.ts suffix and exported function', async () => {
@@ -233,6 +270,52 @@ describe('CLI smoke tests', () => {
       await expect(access(escapedPath)).rejects.toThrow();
     });
   });
+});
+
+/**
+ * Отдельная группа для проверки UX ошибок: невалидный ввод не должен
+ * выглядеть как крах программы — никаких stack trace, никаких префиксов
+ * вида "Unexpected error:". См. src/utils/error-handler.ts.
+ */
+describe('CLI smoke tests — error output', () => {
+  let workDir: string;
+
+  beforeAll(async () => {
+    workDir = await mkdtemp(path.join(tmpdir(), 'xpressify-smoke-errors-'));
+  }, 60000);
+
+  afterAll(async () => {
+    await rm(workDir, { recursive: true, force: true });
+  });
+
+  it('invalid project name produces a clean one-line error without stack trace', async () => {
+    const result = await execa(
+      'node',
+      [CLI_PATH, 'new', 'Bad Name!', '--yes', '--no-install'],
+      { cwd: workDir, reject: false },
+    );
+
+    const output = `${result.stdout}\n${result.stderr}`;
+    expect(result.exitCode).not.toBe(0);
+    // Нет префикса "Unexpected error" и нет stack trace.
+    expect(output).not.toContain('Unexpected error');
+    expect(output).not.toMatch(/\n\s+at\s+.+:\d+:\d+/);
+    // Есть понятное сообщение про формат имени.
+    expect(output.toLowerCase()).toContain('project name');
+  }, 30000);
+
+  it('invalid --package-manager flag produces a clean error without stack trace', async () => {
+    const result = await execa(
+      'node',
+      [CLI_PATH, 'new', 'any-name', '--yes', '--no-install', '--package-manager', 'bun'],
+      { cwd: workDir, reject: false },
+    );
+
+    const output = `${result.stdout}\n${result.stderr}`;
+    expect(result.exitCode).not.toBe(0);
+    expect(output).not.toContain('Unexpected error');
+    expect(output).not.toMatch(/\n\s+at\s+.+:\d+:\d+/);
+  }, 30000);
 });
 
 /**

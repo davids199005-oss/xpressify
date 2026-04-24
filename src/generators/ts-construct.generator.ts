@@ -6,17 +6,31 @@ import { assertWithinProject, toPosix } from './project-boundary';
 import type { GenerateOptions } from '../schemas/generate-options.schema';
 
 /**
+ * Дефолтные директории для каждого типа конструкции относительно projectRoot.
+ * Используются когда пользователь указывает только имя без пути.
+ * По аналогии с route → src/routes, util → src/utils.
+ */
+const DEFAULT_DIRS: Record<'class' | 'interface' | 'enum', string> = {
+  class: 'src/classes',
+  interface: 'src/interfaces',
+  enum: 'src/enums',
+};
+
+/**
  * Генерирует TypeScript-конструкцию (class, interface или enum).
  *
- * Ключевая особенность: имя может содержать путь — например 'src/models/User'.
- * В этом случае path.dirname даёт нам 'src/models/', а path.basename даёт 'User'.
- * Файл создаётся именно по указанному пути относительно корня проекта.
- * Если путь не указан (просто 'User'), файл создаётся в текущей директории.
+ * Поведение:
+ *   - `g class User`            → projectRoot/src/classes/user.class.ts
+ *   - `g interface Product`     → projectRoot/src/interfaces/product.interface.ts
+ *   - `g enum Status`           → projectRoot/src/enums/status.enum.ts
+ *   - `g class src/models/User` → projectRoot/src/models/user.class.ts
  *
- * Безопасность: путь нормализуется и проверяется что он не выходит за пределы
- * projectRoot. Проверка учитывает symlink'и — мы резолвим канонические пути
- * через fs.realpath, иначе злоумышленник (или случайный промах) с symlink'ом
- * внутри проекта мог бы создать файл за его пределами.
+ * Ключевое: результат зависит ТОЛЬКО от projectRoot (определяется
+ * через upward-traversal до package.json), а не от текущей рабочей
+ * директории. Запуск из любой подпапки проекта даёт один и тот же файл.
+ *
+ * Безопасность: путь нормализуется и проверяется что он не выходит за
+ * пределы projectRoot с учётом symlink'ов через fs.realpath.
  */
 export async function generateTsConstruct(options: GenerateOptions): Promise<void> {
   const { name, projectRoot, type } = options;
@@ -28,26 +42,22 @@ export async function generateTsConstruct(options: GenerateOptions): Promise<voi
   const baseName = path.basename(name);
   const names = resolveNames(baseName);
 
-  // Если пользователь указал путь — используем его относительно корня проекта.
-  // Если нет (dir === '.') — создаём файл в текущей рабочей директории.
-  const outputDir = dir === '.' ? process.cwd() : path.resolve(projectRoot, dir);
+  // Если путь не указан — используем типовую папку для конструкции;
+  // иначе — указанный путь относительно projectRoot.
+  const relativeDir = dir === '.' ? DEFAULT_DIRS[type as keyof typeof DEFAULT_DIRS] : dir;
+  const outputDir = path.resolve(projectRoot, relativeDir);
 
   const outputPath = path.resolve(outputDir, `${names.kebab}.${type}.ts`);
 
-  // Проверка границ проекта с учётом symlink'ов.
-  // Проверяем только случай с явным путём — генерация в cwd безопасна
-  // по определению (пользователь явно попросил именно туда).
-  if (dir !== '.') {
-    await assertWithinProject(outputPath, projectRoot, name);
-  }
+  // Проверяем границы всегда — даже для дефолтного пути. Это упрощает
+  // модель безопасности и закрывает крайний случай, если в DEFAULT_DIRS
+  // когда-нибудь появится выражение, зависящее от пользовательского ввода.
+  await assertWithinProject(outputPath, projectRoot, name);
 
   const templatePath = `generate/${type}/${type}.ts.hbs`;
 
   await templateService.renderToFile(templatePath, outputPath, { ...names });
 
-  // Красивый относительный путь для вывода — всегда с прямыми слэшами,
-  // чтобы пользователи на Windows не путались и чтобы тесты (e2e smoke)
-  // могли писать единые assert'ы.
   const displayPath = toPosix(path.relative(projectRoot, outputPath));
   logger.success(`Created ${type}: ${displayPath}`);
 }

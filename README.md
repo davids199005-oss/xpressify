@@ -165,7 +165,9 @@ Flags for `new`:
 ## `generate` — Add components
 
 Run from anywhere inside your project. Xpressify walks up the directory tree
-to find `package.json` automatically.
+to find `package.json` and treats that as the project root. Every generator
+writes files relative to that root — the result does not depend on the
+directory you ran the command from.
 
 ```bash
 # Route — creates router + controller + service (3 files)
@@ -176,13 +178,19 @@ xpressify g route user-profile
 xpressify g middleware auth
 xpressify g middleware request-logger
 
-# TypeScript constructs — supports path notation
+# TypeScript constructs — defaults to src/classes, src/interfaces, src/enums
+xpressify g class User
+xpressify g interface Product
+xpressify g enum Status
+
+# Same, with an explicit path (path notation is supported by every generator)
 xpressify g class src/models/User
 xpressify g interface src/types/Product
-xpressify g enum src/enums/Status
+xpressify g enum src/domain/Status
 
 # DTO — Zod-aware if zod is in the target project, plain interface otherwise
-xpressify g dto src/dtos/CreateUser
+xpressify g dto CreateUser
+xpressify g dto src/dtos/CreateOrder
 
 # Test — picks Vitest or Jest by inspecting the target's devDependencies
 xpressify g test users
@@ -198,9 +206,9 @@ xpressify g util src/modules/auth/token-helpers
 |---|---|
 | `route` | `src/routes/<name>.router.ts` + `src/controllers/<name>.controller.ts` + `src/services/<name>.service.ts` |
 | `middleware` | `src/middlewares/<name>.middleware.ts` |
-| `class` | `<path>/<name>.class.ts` |
-| `interface` | `<path>/<name>.interface.ts` |
-| `enum` | `<path>/<name>.enum.ts` |
+| `class` | `src/classes/<name>.class.ts` (or `<path>/<name>.class.ts`) |
+| `interface` | `src/interfaces/<name>.interface.ts` (or `<path>/<name>.interface.ts`) |
+| `enum` | `src/enums/<name>.enum.ts` (or `<path>/<name>.enum.ts`) |
 | `dto` | `src/dtos/<name>.dto.ts` (or `<path>/<name>.dto.ts`) — uses Zod schema + `z.infer` when `zod` is present, otherwise emits a plain interface |
 | `test` | `src/__tests__/<name>.test.ts` (or `<path>/<name>.test.ts`) — Vitest or Jest template chosen by detecting the framework in `package.json`; fails with a hint if neither is installed |
 | `util` | `src/utils/<name>.util.ts` (or `<path>/<name>.util.ts`) |
@@ -277,7 +285,39 @@ node --version
 
 ---
 
-## Upgrading from 1.x
+## Troubleshooting
+
+Invalid CLI input (bad project name, unknown `--package-manager`, illegal
+characters in a component name) produces a single, readable error message
+and exits with code `1`. If you need the full stack trace to debug an
+unexpected failure, set `XPRESSIFY_DEBUG=1`:
+
+```bash
+XPRESSIFY_DEBUG=1 xpressify new my-api --yes
+```
+
+If `generate` fails with *"Not inside a Node.js project"*, make sure you're
+running the command from somewhere inside a directory tree that contains a
+`package.json` — Xpressify walks up to find the project root.
+
+If `generate` refuses with *"Refusing to create file outside of project
+root"*, the path you provided resolved outside your project (for example
+`../../foo`). Drop the escaping segments and use a path inside the project.
+
+---
+
+## Upgrading
+
+### To `2.2.2`
+
+- **BREAKING (generate)**: `g class`, `g interface`, and `g enum` without
+  an explicit path used to land next to the current working directory.
+  They now write to `src/classes/`, `src/interfaces/`, and `src/enums/`
+  under the detected project root, matching the behaviour of every other
+  generator (`route`, `middleware`, `util`, `dto`, `test`). Explicit path
+  arguments (`g class src/models/User`) are unaffected.
+
+### From 1.x to 2.x
 
 Version `2.0.0` is a breaking release — generated projects now use ESM
 instead of CommonJS, and the `generate` command argument was renamed from

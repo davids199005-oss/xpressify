@@ -7,8 +7,7 @@ import { generateTsConstruct } from '../generators/ts-construct.generator';
 import { generateDto } from '../generators/dto.generator';
 import { generateTest } from '../generators/test.generator';
 import { generateUtil } from '../generators/util.generator';
-import { logger } from '../utils/logger';
-import { XpressifyError, isError } from '../utils/errors';
+import { handleCommandError } from '../utils/error-handler';
 
 export function registerGenerateCommand(program: Command): void {
   program
@@ -65,15 +64,7 @@ Examples:
             break;
         }
       } catch (err) {
-        if (err instanceof XpressifyError) {
-          logger.error(err.message);
-        } else if (isError(err)) {
-          logger.error(`Unexpected error: ${err.message}`);
-          console.error(err.stack);
-        } else {
-          logger.error(`Unexpected error: ${String(err)}`);
-        }
-        process.exit(1);
+        handleCommandError(err);
       }
     });
 }

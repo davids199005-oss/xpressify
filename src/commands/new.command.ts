@@ -13,8 +13,8 @@ import {
 } from '../schemas/project-options.schema';
 import { toKebabCase } from '../utils/naming';
 import { applyFeatureDependencies } from '../utils/feature-dependencies';
-import { logger } from '../utils/logger';
-import { XpressifyError, isError } from '../utils/errors';
+import { XpressifyError } from '../utils/errors';
+import { handleCommandError } from '../utils/error-handler';
 
 /**
  * Опции CLI команды new.
@@ -98,24 +98,10 @@ Examples:
 
         await generateProject(options);
       } catch (err) {
-        // Разделяем обработку наших ошибок и неожиданных системных ошибок.
-        // XpressifyError — это ожидаемые ошибки (директория уже существует,
-        // шаблон не найден и т.д.). Для них показываем только сообщение.
-        // Для Error — стектрейс для диагностики. Для чего-то ещё (null,
-        // строка, объект без message) — приводим к строке через getErrorMessage.
-        if (err instanceof XpressifyError) {
-          logger.error(err.message);
-        } else if (isError(err)) {
-          logger.error(`Unexpected error: ${err.message}`);
-          console.error(err.stack);
-        } else {
-          logger.error(`Unexpected error: ${String(err)}`);
-        }
-
-        // Код выхода 1 сигнализирует оболочке что команда завершилась с ошибкой.
-        // Это важно для CI/CD — скрипты проверяют код выхода чтобы понять
-        // успешно ли выполнилась команда.
-        process.exit(1);
+        // Вся логика форматирования живёт в одном месте — см. utils/error-handler.ts.
+        // ZodError, XpressifyError и обычные Error выводятся одинаково чисто:
+        // одно сообщение, без stack trace и без префикса "Unexpected error".
+        handleCommandError(err);
       }
     });
 }
